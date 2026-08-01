@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, ShieldCheck } from "lucide-react";
 import SectionHeader from "./common/SectionHeader";
+import { fadeUp, staggerContainer } from "./common/animation";
 
 const faqs = [
   {
@@ -26,41 +27,75 @@ const FAQ = () => {
   const [openIndex, setOpenIndex] = useState(0);
 
   return (
-    <section id="faq" className="overflow-hidden bg-white px-6 py-24 sm:px-8 lg:px-10 lg:py-28">
-      <div className="mx-auto max-w-7xl">
-        <SectionHeader eyebrow="FAQ" title="Questions before you bring order to the chaos." />
-        <div className="mx-auto mt-16 w-full max-w-5xl space-y-4">
+    <section id="faq" className="landing-section overflow-hidden bg-white">
+      <div className="landing-container">
+        <SectionHeader
+          eyebrow="FAQ"
+          title="Questions before you bring order to the chaos."
+          description="Clear answers about security, AI, reminders and family access before you move your important records into EverKeep."
+        />
+
+        <motion.div
+          variants={staggerContainer}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.16 }}
+          className="faq-list mx-auto mt-14 w-full max-w-5xl lg:mt-16"
+        >
           {faqs.map((faq, index) => {
             const isOpen = openIndex === index;
+            const panelId = `faq-panel-${index}`;
+            const buttonId = `faq-button-${index}`;
+
             return (
-              <div key={faq.question} className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+              <motion.article
+                key={faq.question}
+                variants={fadeUp}
+                className={`faq-item ${isOpen ? "faq-item-open" : ""}`}
+              >
                 <button
+                  id={buttonId}
                   onClick={() => setOpenIndex(isOpen ? -1 : index)}
-                  className="flex w-full items-center justify-between gap-5 px-6 py-5 text-left sm:px-8 sm:py-6"
+                  aria-expanded={isOpen}
+                  aria-controls={panelId}
+                  className="faq-trigger"
                 >
-                  <span className="min-w-0 text-base font-black text-slate-950 sm:text-lg">{faq.question}</span>
-                  <ChevronDown
-                    size={20}
-                    className={`shrink-0 text-slate-400 transition-transform duration-300 ${isOpen ? "rotate-180" : ""}`}
-                  />
+                  <span className="faq-question">{faq.question}</span>
+                  <span className="faq-icon" aria-hidden="true">
+                    <ChevronDown size={18} />
+                  </span>
                 </button>
                 <AnimatePresence initial={false}>
                   {isOpen && (
                     <motion.div
+                      id={panelId}
+                      role="region"
+                      aria-labelledby={buttonId}
                       initial={{ height: 0, opacity: 0 }}
                       animate={{ height: "auto", opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
                       transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
                       className="overflow-hidden"
                     >
-                      <p className="px-6 pb-6 text-sm leading-7 text-slate-600 sm:px-8 sm:pb-8 sm:text-base">{faq.answer}</p>
+                      <p className="faq-answer">{faq.answer}</p>
                     </motion.div>
                   )}
                 </AnimatePresence>
-              </div>
+              </motion.article>
             );
           })}
-        </div>
+        </motion.div>
+
+        <motion.div
+          variants={fadeUp}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.4 }}
+          className="faq-trust-note mx-auto mt-8 max-w-5xl"
+        >
+          <ShieldCheck size={18} className="shrink-0 text-primary-600" />
+          <span>EverKeep is built for private, secure organization of sensitive household and asset records.</span>
+        </motion.div>
       </div>
     </section>
   );

@@ -25,30 +25,29 @@ const testimonials = [
 
 const Testimonials = () => {
   return (
-    <section className="overflow-hidden bg-white px-6 py-24 sm:px-8 lg:px-10 lg:py-28">
-      <div className="mx-auto max-w-7xl">
+    <section className="landing-section overflow-hidden bg-white">
+      <div className="landing-container">
         <SectionHeader eyebrow="Loved by early users" title="Premium clarity for real-life complexity." />
         <motion.div
           variants={staggerContainer}
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, amount: 0.18 }}
-          className="mt-16 grid items-stretch gap-8 md:grid-cols-3"
+          className="mt-14 grid items-stretch gap-6 md:grid-cols-3 lg:mt-16 lg:gap-8"
         >
           {testimonials.map((testimonial) => (
             <motion.article
               key={testimonial.name}
               variants={fadeUp}
-              whileHover={{ y: -7 }}
-              className="flex h-full min-w-0 flex-col rounded-3xl border border-slate-200 bg-white p-7 shadow-[0_18px_60px_rgba(15,23,42,0.07)]"
+              className="landing-card landing-card-hover flex h-full min-w-0 flex-col p-7"
             >
               <p className="break-words text-lg leading-8 text-slate-700">"{testimonial.review}"</p>
               <div className="mt-auto flex items-center gap-4 pt-8">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 to-violet-600 text-sm font-black text-white">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary-600 text-sm font-bold text-white">
                   {testimonial.avatar}
                 </div>
                 <div className="min-w-0">
-                  <p className="font-black text-slate-950">{testimonial.name}</p>
+                  <p className="font-semibold text-slate-950">{testimonial.name}</p>
                   <p className="mt-1 text-sm font-medium text-slate-500">{testimonial.company}</p>
                 </div>
               </div>

@@ -12,18 +12,21 @@ import Footer from "../../components/landing/Footer";
 
 const Landing = () => {
   return (
-    <main className="min-h-screen overflow-hidden bg-white text-slate-950">
+    <main className="landing-page min-h-screen overflow-hidden bg-white text-slate-950">
       <Navbar />
+
       <Hero />
-      <Trusted />
-      <Features />
-      <HowItWorks />
-      <AISection />
-      <Testimonials />
-      <Pricing />
-      <FAQ />
-      <CTA />
-      <Footer />
+      <div>
+        <Trusted />
+        <Features />
+        <HowItWorks />
+        <AISection />
+        <Testimonials />
+        <Pricing />
+        <FAQ />
+        <CTA />
+        <Footer />
+      </div>
     </main>
   );
 };
