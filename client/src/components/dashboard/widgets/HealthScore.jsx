@@ -1,22 +1,37 @@
 import { CheckCircle2 } from "lucide-react";
 import DashboardPanel from "./DashboardPanel";
 import WidgetHeader from "./WidgetHeader";
+import { dashboardSummary, widgetState } from "../overview/dashboardData";
 
-const HealthScore = () => (
-  <DashboardPanel className="p-5 sm:p-6">
-    <WidgetHeader eyebrow="Health Score" title="Workspace protection status" />
+const HealthScore = ({ status = widgetState.populated, summary = dashboardSummary }) => (
+  <DashboardPanel>
+    <WidgetHeader eyebrow="Health" title="Protection status" />
 
-    <div className="mt-7 flex items-center gap-5 rounded-3xl border border-emerald-100 bg-emerald-50 p-5">
-      <div className="grid h-16 w-16 shrink-0 place-items-center rounded-3xl bg-white text-emerald-600 shadow-[0_14px_34px_rgba(15,23,42,0.08)]">
-        <CheckCircle2 size={30} aria-hidden="true" />
+    {status === widgetState.loading ? <div className="mt-6 h-40 animate-pulse rounded-3xl bg-slate-100" /> : null}
+
+    {status === widgetState.error ? (
+      <div className="mt-6 rounded-2xl border border-rose-200 bg-rose-50/60 p-4">
+        <p className="text-[14px] font-medium text-rose-700">Unable to load score.</p>
       </div>
-      <div className="min-w-0">
-        <p className="text-4xl font-bold tracking-tight text-slate-950">94</p>
-        <p className="mt-2 text-sm font-semibold leading-6 text-slate-600">
-          Excellent coverage across warranties, documents and policies.
-        </p>
+    ) : null}
+
+    {status === widgetState.empty ? (
+      <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50/60 p-4">
+        <p className="text-[14px] font-medium text-slate-600">Score appears after first records are verified.</p>
       </div>
-    </div>
+    ) : null}
+
+    {status === widgetState.populated ? (
+      <div className="mt-6 flex items-center gap-4 rounded-3xl border border-slate-200 bg-slate-50/70 p-6">
+        <div className="grid h-14 w-14 shrink-0 place-items-center rounded-3xl bg-white text-emerald-600 shadow-[0_10px_24px_rgba(15,23,42,0.07)]">
+          <CheckCircle2 size={24} aria-hidden="true" />
+        </div>
+        <div className="min-w-0">
+          <p className="text-[36px] font-semibold tracking-tight text-slate-950">{summary.score}</p>
+          <p className="mt-1 text-[14px] text-slate-600">Everything is protected.</p>
+        </div>
+      </div>
+    ) : null}
   </DashboardPanel>
 );
 

@@ -12,7 +12,7 @@ import Footer from "../../components/landing/Footer";
 
 const Landing = () => {
   return (
-    <main className="landing-page min-h-screen overflow-hidden bg-white text-slate-950">
+    <main className="landing-page h-screen overflow-y-auto overflow-x-hidden bg-white text-slate-950">
       <Navbar />
 
       <Hero />

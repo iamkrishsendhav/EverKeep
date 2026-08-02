@@ -1,101 +1,108 @@
 import {
   Activity,
-  BarChart3,
   Bell,
-  CalendarDays,
   Clock3,
-  CreditCard,
-  FileText,
-  Home,
+  FileCheck2,
   Package,
   Plus,
   ShieldCheck,
   Sparkles,
-  Upload,
+  TriangleAlert,
   Users,
-  Wrench,
+  Upload,
 } from "lucide-react";
 
-export const navItems = [
-  { icon: Home, label: "Overview", active: true },
-  { icon: Package, label: "Assets" },
-  { icon: FileText, label: "Documents" },
-  { icon: CalendarDays, label: "Renewals" },
-  { icon: ShieldCheck, label: "Insurance" },
-  { icon: Sparkles, label: "AI Insights" },
-  { icon: BarChart3, label: "Reports" },
-  { icon: Users, label: "Family" },
-];
+export const widgetState = {
+  loading: "loading",
+  empty: "empty",
+  populated: "populated",
+  error: "error",
+};
+
+export const dashboardSummary = {
+  greeting: "Good morning, Avery",
+  title: "Everything is protected.",
+  subtitle: "Critical items are healthy.",
+  score: 94,
+  scoreLabel: "Health score",
+};
 
 export const stats = [
   {
     icon: Package,
     label: "Total Assets",
     value: "128",
-    detail: "$84.6k tracked value",
-    tone: "text-indigo-600 bg-indigo-50 border-indigo-100",
+    detail: "Active records",
+    tone: "text-slate-700 bg-slate-100 border-slate-200",
   },
   {
     icon: ShieldCheck,
-    label: "Protected Assets",
+    label: "Coverage",
     value: "92%",
-    detail: "18 records verified this month",
-    tone: "text-emerald-600 bg-emerald-50 border-emerald-100",
+    detail: "Verified this month",
+    tone: "text-slate-700 bg-slate-100 border-slate-200",
   },
   {
     icon: Clock3,
-    label: "Upcoming Renewals",
+    label: "Renewals",
     value: "7",
-    detail: "3 need attention this week",
-    tone: "text-amber-600 bg-amber-50 border-amber-100",
+    detail: "Due soon",
+    tone: "text-slate-700 bg-slate-100 border-slate-200",
   },
   {
     icon: Activity,
-    label: "AI Health Score",
+    label: "Automation",
     value: "94",
-    detail: "Excellent household coverage",
-    tone: "text-violet-600 bg-violet-50 border-violet-100",
+    detail: "AI confidence",
+    tone: "text-slate-700 bg-slate-100 border-slate-200",
   },
 ];
 
 export const activityItems = [
-  { icon: Upload, title: "Invoice added", meta: "MacBook Pro receipt attached", time: "12 min ago" },
-  { icon: ShieldCheck, title: "Policy verified", meta: "Home insurance matched to 14 assets", time: "2h ago" },
-  { icon: Wrench, title: "Service logged", meta: "HVAC annual maintenance completed", time: "Yesterday" },
-  { icon: CreditCard, title: "Subscription reviewed", meta: "Adobe plan marked as shared", time: "Mon" },
+  { icon: Upload, title: "Invoice attached", meta: "MacBook Pro", time: "12m" },
+  { icon: ShieldCheck, title: "Policy verified", meta: "Home insurance", time: "2h" },
+  { icon: FileCheck2, title: "Document matched", meta: "Warranty receipt", time: "Yesterday" },
+  { icon: TriangleAlert, title: "Review pending", meta: "2 renewals", time: "Mon" },
 ];
 
 export const renewalItems = [
-  { title: "Home Insurance", date: "Aug 12", amount: "$1,420", status: "Review", tone: "text-amber-700 bg-amber-50 border-amber-100" },
-  { title: "Tesla Warranty", date: "Aug 19", amount: "Expires", status: "Prepare", tone: "text-rose-700 bg-rose-50 border-rose-100" },
-  { title: "iCloud Family", date: "Sep 03", amount: "$9.99", status: "Auto", tone: "text-emerald-700 bg-emerald-50 border-emerald-100" },
+  { id: "r1", title: "Home Insurance", date: "Aug 12", amount: "$1,420", status: "Review", tone: "text-amber-700 bg-amber-50 border-amber-100" },
+  { id: "r2", title: "Tesla Warranty", date: "Aug 19", amount: "Expires", status: "Prepare", tone: "text-rose-700 bg-rose-50 border-rose-100" },
+  { id: "r3", title: "iCloud Family", date: "Sep 03", amount: "$9.99", status: "Auto", tone: "text-emerald-700 bg-emerald-50 border-emerald-100" },
 ];
 
-export const calendarDays = [
-  { day: "M", date: "29", active: false, marked: false },
-  { day: "T", date: "30", active: true, marked: true },
-  { day: "W", date: "31", active: false, marked: false },
-  { day: "T", date: "01", active: false, marked: true },
-  { day: "F", date: "02", active: false, marked: false },
-  { day: "S", date: "03", active: false, marked: false },
-  { day: "S", date: "04", active: false, marked: true },
+export const renewalTrend = [
+  { month: "Aug", value: 68 },
+  { month: "Sep", value: 42 },
+  { month: "Oct", value: 76 },
+  { month: "Nov", value: 54 },
+  { month: "Dec", value: 88 },
+  { month: "Jan", value: 63 },
+];
+
+export const categoryMix = [
+  { id: "electronics", label: "Electronics", value: 38 },
+  { id: "home", label: "Home", value: 27 },
+  { id: "insurance", label: "Insurance", value: 19 },
+  { id: "subscriptions", label: "Subscriptions", value: 16 },
+];
+
+export const expenseSeries = [
+  { id: "warranty", label: "Warranty", amount: "$420", value: 34 },
+  { id: "insurance", label: "Insurance", amount: "$1,420", value: 82 },
+  { id: "subscriptions", label: "Subscriptions", amount: "$186", value: 22 },
+  { id: "service", label: "Service", amount: "$640", value: 48 },
 ];
 
 export const insights = [
-  "Add serial numbers to 6 electronics for stronger warranty recovery.",
-  "Home insurance coverage is missing proof for two high-value items.",
-  "One subscription appears duplicated across family members.",
-];
-
-export const documentItems = [
-  { title: "Home Insurance Policy", meta: "PDF synced from email", status: "Verified" },
-  { title: "MacBook Pro Invoice", meta: "Attached to asset record", status: "Complete" },
-  { title: "HVAC Service Receipt", meta: "Needs category review", status: "Review" },
+  "Add serial numbers to 6 assets.",
+  "Attach proof for 2 high-value items.",
+  "Merge 1 duplicated subscription.",
 ];
 
 export const quickActions = [
-  { icon: Plus, label: "Add asset" },
-  { icon: Upload, label: "Upload document" },
-  { icon: Bell, label: "Create reminder" },
-  { icon: Users, label: "Invite family" },
+  { id: "add-asset", icon: Plus, label: "Add asset" },
+  { id: "upload-document", icon: Upload, label: "Upload document" },
+  { id: "create-reminder", icon: Bell, label: "Create reminder" },
+  { id: "invite-family", icon: Users, label: "Invite family" },
 ];

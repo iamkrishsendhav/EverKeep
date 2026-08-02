@@ -1,7 +1,5 @@
 // src/pages/Dashboard/Dashboard.jsx
 
-import DashboardLayout from "../../components/dashboard/layout/DashboardLayout";
-
 import WelcomeSection from "../../components/dashboard/overview/WelcomeSection";
 import StatsGrid from "../../components/dashboard/overview/StatsGrid";
 import RecentActivity from "../../components/dashboard/overview/RecentActivity";
@@ -16,41 +14,40 @@ import ExpenseChart from "../../components/dashboard/widgets/ExpenseChart";
 
 const Dashboard = () => {
   return (
-    <DashboardLayout>
-      <div className="space-y-6">
+    <div className="space-y-12">
+      <WelcomeSection />
+      <StatsGrid />
 
-        {/* Welcome */}
-        <WelcomeSection />
-
-        {/* Stats */}
-        <StatsGrid />
-
-        {/* Charts */}
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
+        <div className="xl:col-span-7">
           <RenewalChart />
+        </div>
+        <div className="xl:col-span-5">
           <CategoryChart />
         </div>
 
-        {/* Expense + Health */}
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <div className="xl:col-span-7">
           <ExpenseChart />
+        </div>
+        <div className="xl:col-span-5">
           <HealthScore />
         </div>
 
-        {/* Renewals + Activity */}
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <div className="xl:col-span-6">
           <UpcomingRenewals />
+        </div>
+        <div className="xl:col-span-6">
           <RecentActivity />
         </div>
 
-        {/* AI + Quick Actions */}
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <div className="xl:col-span-6">
           <AIInsights />
+        </div>
+        <div className="xl:col-span-6">
           <QuickActions />
         </div>
-
       </div>
-    </DashboardLayout>
+    </div>
   );
 };
 
