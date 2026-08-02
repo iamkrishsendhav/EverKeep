@@ -6,6 +6,8 @@ import Register from "../pages/Auth/Register";
 import Dashboard from "../pages/Dashboard/Dashboard";
 import NotFound from "../components/common/NotFound";
 import DashboardLayout from "../components/dashboard/layout/DashboardLayout";
+import Assets from "../pages/Assets/Assets";
+
 
 const DashboardPagePlaceholder = ({ title, description }) => (
   <section className="space-y-4">
@@ -27,7 +29,7 @@ const AppRoutes = () => {
 
         <Route path="/dashboard/*" element={<DashboardLayout />}>
           <Route index element={<Dashboard />} />
-          <Route path="assets" element={<DashboardPagePlaceholder title="Assets" description="Asset management workflows will render in-place inside the shared dashboard shell." />} />
+          <Route path="assets" element={<Assets />} />
           <Route path="documents" element={<DashboardPagePlaceholder title="Documents" description="Document review and storage workflows will appear here without reloading the sidebar or header." />} />
           <Route path="warranty" element={<DashboardPagePlaceholder title="Warranty" description="Warranty coverage and renewal tracking will appear here within the same app shell." />} />
           <Route path="calendar" element={<DashboardPagePlaceholder title="Calendar" description="Upcoming tasks and lifecycle milestones will render here without disrupting the layout." />} />
