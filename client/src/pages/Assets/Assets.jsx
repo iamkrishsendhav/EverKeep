@@ -4,7 +4,7 @@ import AssetGrid from "../../components/asset/AssetGrid";
 import DeleteAssetModal from "../../components/asset/DeleteAssetModal";
 import AssetModal from "../../components/asset/AssetModal";
 import AssetForm from "../../components/asset/AssetForm";
-
+import AssetSearch from "../../components/asset/AssetSearch";
 
 import {
     getAssets,
@@ -22,7 +22,7 @@ const Assets = () => {
 
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [editingAsset, setEditingAsset] = useState(null);
-
+    const [search, setSearch] = useState("");
     // ==========================
     // Fetch Assets
     // ==========================
@@ -113,6 +113,21 @@ const Assets = () => {
         );
     }
 
+
+
+
+    const filteredAssets = assets.filter((asset) => {
+
+        const keyword = search.toLowerCase();
+
+        return (
+            asset.name.toLowerCase().includes(keyword) ||
+            (asset.brand || "").toLowerCase().includes(keyword) ||
+            asset.category.toLowerCase().includes(keyword)
+        );
+
+    });
+
     // ==========================
     // UI
     // ==========================
@@ -130,14 +145,16 @@ const Assets = () => {
                         Assets
                     </h1>
 
-                    <p className="mt-2 text-slate-500">
-                        Manage all your assets in one place.
-                    </p>
+                    <div className="mt-6">
+                        <AssetSearch
+                            value={search}
+                            onChange={setSearch}
+                        />
+                    </div>
 
                 </div>
-
                 <AssetGrid
-                    assets={assets}
+                    assets={filteredAssets}
                     onDelete={handleDelete}
                     onEdit={handleEdit}
                 />
