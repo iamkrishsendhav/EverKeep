@@ -1,8 +1,12 @@
 import dotenv from "dotenv";
+
+dotenv.config(); // <-- sabse pehle
+
 import app from "./app.js";
 import connectDB from "./config/db.js";
+import cloudinary from "./config/cloudinary.js";
 
-dotenv.config();
+console.log(cloudinary.config());
 
 const PORT = process.env.PORT || 5000;
 
@@ -13,8 +17,9 @@ const startServer = async () => {
         app.listen(PORT, () => {
             console.log(`Server running on http://localhost:${PORT}`);
         });
+
     } catch (error) {
-        console.error("Failed to start server.");
+        console.error(error);
     }
 };
 

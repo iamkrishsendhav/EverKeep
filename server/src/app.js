@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import assetRoutes from "./routes/asset.routes.js";
+import documentRoutes from "./routes/document.routes.js";
 
 
 const app = express();
@@ -15,5 +16,7 @@ app.get("/", (req, res) => {
     res.send("EverKeep Backend API is running successfully!");
 });
 app.use("/api/assets", assetRoutes);
+app.use("/api/documents", documentRoutes);
+
 
 export default app;

@@ -5,6 +5,12 @@ import DeleteAssetModal from "../../components/asset/DeleteAssetModal";
 import AssetModal from "../../components/asset/AssetModal";
 import AssetForm from "../../components/asset/AssetForm";
 import AssetSearch from "../../components/asset/AssetSearch";
+import AssetCategoryFilter from "../../components/asset/AssetCategoryFilter";
+import AssetStatusFilter from "../../components/asset/AssetStatusFilter";
+import AssetSort from "../../components/asset/AssetSort";
+import AssetHeader from "../../components/asset/AssetHeader";
+import AssetDetailsModal from "../../components/asset/AssetDetailsModal";
+
 
 import {
     getAssets,
@@ -23,6 +29,13 @@ const Assets = () => {
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [editingAsset, setEditingAsset] = useState(null);
     const [search, setSearch] = useState("");
+    const [category, setCategory] = useState("All");
+    const [status, setStatus] = useState("All");
+    const [sortBy, setSortBy] = useState("newest");
+    const [isAddOpen, setIsAddOpen] = useState(false);
+    const [viewAsset, setViewAsset] = useState(null);
+
+
     // ==========================
     // Fetch Assets
     // ==========================
@@ -116,17 +129,121 @@ const Assets = () => {
 
 
 
-    const filteredAssets = assets.filter((asset) => {
+    const getStatus = (asset) => {
 
-        const keyword = search.toLowerCase();
+        if (asset.status === "Archived") {
+            return "Archived";
+        }
 
-        return (
-            asset.name.toLowerCase().includes(keyword) ||
-            (asset.brand || "").toLowerCase().includes(keyword) ||
-            asset.category.toLowerCase().includes(keyword)
+        if (!asset.warrantyExpiry) {
+            return "Active";
+        }
+
+        const today = new Date();
+
+        const expiry = new Date(asset.warrantyExpiry);
+
+        const diffDays = Math.ceil(
+            (expiry - today) / (1000 * 60 * 60 * 24)
         );
 
-    });
+        if (diffDays < 0) {
+            return "Expired";
+        }
+
+        if (diffDays <= 30) {
+            return "Expiring Soon";
+        }
+
+        return "Active";
+    };
+
+
+    //filter logic
+
+
+
+    const filteredAssets = assets
+        .filter((asset) => {
+
+            const keyword = search.toLowerCase();
+
+            const matchesSearch =
+                asset.name.toLowerCase().includes(keyword) ||
+                (asset.brand || "").toLowerCase().includes(keyword) ||
+                asset.category.toLowerCase().includes(keyword);
+
+            const matchesCategory =
+                category === "All"
+                    ? true
+                    : asset.category === category;
+
+            const matchesStatus =
+                status === "All"
+                    ? true
+                    : getStatus(asset) === status;
+
+            return (
+                matchesSearch &&
+                matchesCategory &&
+                matchesStatus
+            );
+        })
+
+        .sort((a, b) => {
+
+            switch (sortBy) {
+
+                case "oldest":
+                    return new Date(a.createdAt) - new Date(b.createdAt);
+
+                case "priceHigh":
+                    return b.purchasePrice - a.purchasePrice;
+
+                case "priceLow":
+                    return a.purchasePrice - b.purchasePrice;
+
+                case "name":
+                    return a.name.localeCompare(b.name);
+
+                case "warranty":
+                    return (
+                        new Date(a.warrantyExpiry) -
+                        new Date(b.warrantyExpiry)
+                    );
+
+                default:
+                    return (
+                        new Date(b.createdAt) -
+                        new Date(a.createdAt)
+                    );
+            }
+
+        });
+
+
+    const total = assets.length;
+
+    const active = assets.filter(
+        (asset) => getStatus(asset) === "Active"
+    ).length;
+
+    const expiring = assets.filter(
+        (asset) => getStatus(asset) === "Expiring Soon"
+    ).length;
+
+    const expired = assets.filter(
+        (asset) => getStatus(asset) === "Expired"
+    ).length;
+
+
+
+
+    const handleView = (asset) => {
+        setViewAsset(asset);
+    };
+
+
 
     // ==========================
     // UI
@@ -135,7 +252,7 @@ const Assets = () => {
         <>
             <section className="space-y-6">
 
-                <div>
+                {/* <div>
 
                     <p className="text-sm font-semibold uppercase tracking-[0.25em] text-slate-400">
                         Workspace
@@ -152,15 +269,52 @@ const Assets = () => {
                         />
                     </div>
 
-                </div>
+                    <div className="mt-4">
+
+                        <AssetCategoryFilter
+                            selected={category}
+                            onChange={setCategory}
+                        />
+
+                    </div>
+
+                    <div className="mt-4">
+                        <AssetStatusFilter
+                            selected={status}
+                            onChange={setStatus}
+                        />
+                    </div>
+
+                    <div className="mt-4 flex justify-end">
+
+                        <AssetSort
+                            value={sortBy}
+                            onChange={setSortBy}
+                        />
+
+                    </div>
+
+                </div> */}
+
+                <AssetHeader
+                    total={total}
+                    active={active}
+                    expiring={expiring}
+                    expired={expired}
+                    onAddAsset={() => setIsAddOpen(true)}
+                />
+
+
                 <AssetGrid
                     assets={filteredAssets}
                     onDelete={handleDelete}
                     onEdit={handleEdit}
+                    onView={handleView}
                 />
 
             </section>
 
+            {/* Delete Modal */}
             <DeleteAssetModal
                 isOpen={!!selectedAsset}
                 asset={selectedAsset}
@@ -169,6 +323,23 @@ const Assets = () => {
                 onConfirm={confirmDelete}
             />
 
+            {/* Add Asset Modal */}
+            <AssetModal
+                isOpen={isAddOpen}
+                onClose={() => setIsAddOpen(false)}
+                title="Add New Asset"
+                description="Store warranties, invoices and lifecycle information."
+            >
+                <AssetForm
+                    onCancel={() => setIsAddOpen(false)}
+                    onSuccess={() => {
+                        setIsAddOpen(false);
+                        fetchAssets();
+                    }}
+                />
+            </AssetModal>
+
+            {/* Edit Asset Modal */}
             <AssetModal
                 isOpen={isEditOpen}
                 onClose={() => {
@@ -191,6 +362,17 @@ const Assets = () => {
                     }}
                 />
             </AssetModal>
+
+            <AssetDetailsModal
+                isOpen={!!viewAsset}
+                asset={viewAsset}
+                onClose={() => setViewAsset(null)}
+                onEdit={(asset) => {
+                    setViewAsset(null);
+                    handleEdit(asset);
+                }}
+            />
+
         </>
     );
 };

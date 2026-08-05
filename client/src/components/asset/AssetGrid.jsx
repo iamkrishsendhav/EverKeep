@@ -1,6 +1,6 @@
 import AssetCard from "./AssetCard";
 
-const AssetGrid = ({ assets, onDelete , onEdit }) => {
+const AssetGrid = ({ assets, onDelete , onEdit, onView }) => {
     if (assets.length === 0) {
         return (
             <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-12 text-center">
@@ -23,6 +23,7 @@ const AssetGrid = ({ assets, onDelete , onEdit }) => {
                     asset={asset}
                     onDelete={onDelete}
                     onEdit={onEdit}
+                    onView={onView}
                 />
             ))}
         </div>
