@@ -19,34 +19,27 @@ export const uploadDocument = async (req, res) => {
 
         }
 
-        const document = await Document.create({
+        console.log(req.file);
 
-            name:
-                req.body.name ||
-                req.file.originalname,
+const document = await Document.create({
 
-            originalName:
-                req.file.originalname,
+    name: req.body.name || req.file.originalname,
 
-            fileUrl:
-                req.file.path,
+    originalName: req.file.originalname,
 
-            publicId:
-                req.file.filename,
+    fileUrl: req.file.path,
 
-            fileType:
-                req.file.mimetype,
+    publicId: req.file.filename || req.file.public_id,
 
-            fileSize:
-                req.file.size,
+    fileType: req.file.mimetype,
 
-            category:
-                req.body.category,
+    fileSize: req.file.size,
 
-            asset:
-                req.body.asset || null,
+    category: req.body.category,
 
-        });
+    asset: req.body.asset || null,
+
+});
 
         res.status(201).json({
 
@@ -188,15 +181,15 @@ export const deleteDocument = async (req, res) => {
 
         }
 
-        await cloudinary.uploader.destroy(
-
-            document.publicId,
-
-            {
-                resource_type: "auto",
-            }
-
-        );
+       await cloudinary.uploader.destroy(
+    document.publicId,
+    {
+        resource_type:
+            document.fileType === "application/pdf"
+                ? "raw"
+                : "image",
+    }
+);
 
         await document.deleteOne();
 
@@ -210,16 +203,15 @@ export const deleteDocument = async (req, res) => {
 
     }
 
-    catch (error) {
+   catch (error) {
 
-        res.status(500).json({
+    console.error(error);
 
-            success: false,
+    res.status(500).json({
+        success: false,
+        message: error.message,
+    });
 
-            message: error.message,
-
-        });
-
-    }
+}
 
 };

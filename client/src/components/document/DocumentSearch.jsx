@@ -1,115 +1,26 @@
-import { Search, SlidersHorizontal } from "lucide-react";
+import { Search } from "lucide-react";
 
-const DocumentSearch = ({
-    value,
-    onChange,
-    category,
-    onCategoryChange,
-    sortBy,
-    onSortChange,
-    total,
-}) => {
+const DocumentSearch = ({ value, onChange, total }) => {
     return (
-        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="flex flex-col gap-3 rounded-3xl border border-slate-200 bg-white p-4 shadow-[0_18px_50px_rgba(15,23,42,0.04)] sm:flex-row sm:items-center sm:justify-between">
+            <label className="relative flex min-w-0 flex-1 items-center">
+                <Search
+                    size={18}
+                    className="pointer-events-none absolute left-4 text-slate-400"
+                />
+                <span className="sr-only">Search documents</span>
+                <input
+                    type="search"
+                    value={value}
+                    onChange={(event) => onChange(event.target.value)}
+                    placeholder="Search by file name, category or linked asset"
+                    className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 pl-11 pr-4 text-sm font-medium text-slate-900 outline-none transition focus:border-[#5B4BFF] focus:bg-white focus:ring-4 focus:ring-indigo-100"
+                />
+            </label>
 
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-
-                {/* Search */}
-
-                <div className="relative flex-1">
-
-                    <Search
-                        size={18}
-                        className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
-                    />
-
-                    <input
-                        type="text"
-                        placeholder="Search documents..."
-                        value={value}
-                        onChange={(e) => onChange(e.target.value)}
-                        className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3 pl-12 pr-4 outline-none transition-all focus:border-[#5B4BFF] focus:bg-white"
-                    />
-
-                </div>
-
-                {/* Filters */}
-
-                <div className="flex flex-wrap items-center gap-3">
-
-                    <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-
-                        <SlidersHorizontal
-                            size={18}
-                            className="text-slate-500"
-                        />
-
-                        <select
-                            value={category}
-                            onChange={(e) =>
-                                onCategoryChange(e.target.value)
-                            }
-                            className="bg-transparent text-sm outline-none"
-                        >
-                            <option>All</option>
-                            <option>Invoice</option>
-                            <option>Warranty</option>
-                            <option>Insurance</option>
-                            <option>Identity</option>
-                            <option>Medical</option>
-                            <option>Property</option>
-                            <option>Other</option>
-                        </select>
-
-                    </div>
-
-                    <select
-                        value={sortBy}
-                        onChange={(e) =>
-                            onSortChange(e.target.value)
-                        }
-                        className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-[#5B4BFF]"
-                    >
-                        <option value="latest">
-                            Latest First
-                        </option>
-
-                        <option value="oldest">
-                            Oldest First
-                        </option>
-
-                        <option value="name">
-                            Name (A-Z)
-                        </option>
-
-                        <option value="size">
-                            File Size
-                        </option>
-
-                    </select>
-
-                </div>
-
+            <div className="shrink-0 px-2 text-sm font-medium text-slate-500">
+                {total} result{total === 1 ? "" : "s"}
             </div>
-
-            <div className="mt-4 flex items-center justify-between text-sm text-slate-500">
-
-                <p>
-
-                    Showing
-
-                    <span className="mx-1 font-semibold text-slate-900">
-
-                        {total}
-
-                    </span>
-
-                    Documents
-
-                </p>
-
-            </div>
-
         </div>
     );
 };

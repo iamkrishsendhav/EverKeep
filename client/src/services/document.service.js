@@ -1,87 +1,28 @@
-const API_URL = "http://localhost:5000/api/documents";
+import api from "../lib/axios";
 
-// ================================
-// Get All Documents
-// ================================
-
-export const getAllDocuments = async () => {
-
-    const response = await fetch(API_URL);
-
-    const data = await response.json();
-
-    return data;
-
+export const getDocuments = async () => {
+    const res = await api.get("/documents");
+    return res.data;
 };
-
-// ================================
-// Get Single Document
-// ================================
 
 export const getDocumentById = async (id) => {
-
-    const response = await fetch(`${API_URL}/${id}`);
-
-    const data = await response.json();
-
-    return data;
-
+    const res = await api.get(`/documents/${id}`);
+    return res.data;
 };
 
-// ================================
-// Upload Document
-// ================================
-
-export const uploadDocument = async (formData) => {
-
-    const response = await fetch(API_URL, {
-
-        method: "POST",
-
-        body: formData,
-
+export const uploadDocument = async (formData, config = {}) => {
+    const res = await api.post("/documents", formData, {
+        ...config,
+        headers: {
+            "Content-Type": "multipart/form-data",
+            ...(config.headers || {}),
+        },
     });
 
-    const data = await response.json();
-
-    return data;
-
+    return res.data;
 };
-
-// ================================
-// Update Document
-// ================================
-
-export const updateDocument = async (id, formData) => {
-
-    const response = await fetch(`${API_URL}/${id}`, {
-
-        method: "PUT",
-
-        body: formData,
-
-    });
-
-    const data = await response.json();
-
-    return data;
-
-};
-
-// ================================
-// Delete Document
-// ================================
 
 export const deleteDocument = async (id) => {
-
-    const response = await fetch(`${API_URL}/${id}`, {
-
-        method: "DELETE",
-
-    });
-
-    const data = await response.json();
-
-    return data;
-
+    const res = await api.delete(`/documents/${id}`);
+    return res.data;
 };

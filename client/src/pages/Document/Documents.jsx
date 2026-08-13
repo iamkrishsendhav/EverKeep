@@ -1,155 +1,196 @@
 import { useMemo, useState } from "react";
 
-import DocumentsHeader from "../../components/document/DocumentsHeader";
-import DocumentStats from "../../components/document/DocumentStats";
-import DocumentSearch from "../../components/document/DocumentSearch";
+import ErrorState from "../../components/common/ErrorState";
+import Loading from "../../components/common/Loading";
 import DocumentFilters from "../../components/document/DocumentFilters";
 import DocumentGrid from "../../components/document/DocumentGrid";
-import EmptyDocuments from "../../components/document/EmptyDocuments";
-import DocumentUploadModal from "../../components/document/UploadDocumentModal";
 import DocumentPreviewModal from "../../components/document/DocumentPreviewModal";
-
-const initialDocuments = [
-    {
-        _id: "doc-1",
-        name: "Bike Insurance Policy",
-        category: "Insurance",
-        type: "PDF",
-        size: 2.4 * 1024 * 1024,
-        assetName: "Royal Enfield Classic",
-        assetId: "asset-bike",
-        uploadedAt: "2026-08-02T10:30:00.000Z",
-    },
-    {
-        _id: "doc-2",
-        name: "Laptop Purchase Invoice",
-        category: "Invoice",
-        type: "PDF",
-        size: 820 * 1024,
-        assetName: "MacBook Pro",
-        assetId: "asset-laptop",
-        uploadedAt: "2026-07-28T13:45:00.000Z",
-    },
-    {
-        _id: "doc-3",
-        name: "Home Warranty Certificate",
-        category: "Warranty",
-        type: "Image",
-        size: 1.1 * 1024 * 1024,
-        assetName: "Air Conditioner",
-        assetId: "asset-ac",
-        uploadedAt: "2026-07-19T09:15:00.000Z",
-    },
-];
+import DocumentSearch from "../../components/document/DocumentSearch";
+import DocumentUploadModal from "../../components/document/UploadDocumentModal";
+import DocumentUploadZone from "../../components/document/DocumentUploadZone";
+import DocumentsHeader from "../../components/document/DocumentsHeader";
+import EmptyDocuments from "../../components/document/EmptyDocuments";
+import { getAssetName } from "../../components/document/documentUtils";
+import { useDocuments } from "../../hooks/useDocuments";
+import { getAssets } from "../../services/asset.service";
+import { useEffect } from "react";
 
 const Documents = () => {
-    const [documents, setDocuments] = useState(initialDocuments);
+    const {
+        documents,
+        loading,
+        error,
+        uploading,
+        uploadProgress,
+        deletingId,
+        reload,
+        createDocument,
+        removeDocument,
+    } = useDocuments();
+
+    const [assets, setAssets] = useState([]);
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedCategory, setSelectedCategory] = useState("All");
-    const [sortBy, setSortBy] = useState("latest");
     const [selectedDocument, setSelectedDocument] = useState(null);
     const [showUploadModal, setShowUploadModal] = useState(false);
+    const [initialUploadFile, setInitialUploadFile] = useState(null);
+    const [actionError, setActionError] = useState("");
 
-    const handleView = (document) => {
-        setSelectedDocument(document);
-    };
+    useEffect(() => {
+        let isMounted = true;
 
-    const handleUpload = (newDocument) => {
-        setDocuments((prev) => [
-            {
-                ...newDocument,
-                _id: `doc-${Date.now()}`,
-                uploadedAt: new Date().toISOString(),
-            },
-            ...prev,
-        ]);
-        setShowUploadModal(false);
-    };
+        const loadAssets = async () => {
+            try {
+                const response = await getAssets();
+                const nextAssets = Array.isArray(response.data) ? response.data : [];
+                if (isMounted) setAssets(nextAssets);
+            } catch {
+                if (isMounted) setAssets([]);
+            }
+        };
 
-    const handleDelete = (id) => {
-        const confirmDelete = window.confirm("Delete this document?");
+        loadAssets();
 
-        if (!confirmDelete) return;
-
-        setDocuments((prev) => prev.filter((doc) => doc._id !== id));
-    };
+        return () => {
+            isMounted = false;
+        };
+    }, []);
 
     const filteredDocuments = useMemo(() => {
-        const filtered = documents.filter((doc) => {
-            const matchesSearch = doc.name
-                ?.toLowerCase()
-                .includes(searchQuery.toLowerCase());
+        const query = searchQuery.trim().toLowerCase();
 
+        return documents.filter((document) => {
             const matchesCategory =
-                selectedCategory === "All" || doc.category === selectedCategory;
+                selectedCategory === "All" || document.category === selectedCategory;
 
-            return matchesSearch && matchesCategory;
+            const searchable = [
+                document.name,
+                document.originalName,
+                document.category,
+                getAssetName(document.asset),
+            ]
+                .filter(Boolean)
+                .join(" ")
+                .toLowerCase();
+
+            return matchesCategory && (!query || searchable.includes(query));
         });
+    }, [documents, searchQuery, selectedCategory]);
 
-        return [...filtered].sort((a, b) => {
-            if (sortBy === "oldest") {
-                return new Date(a.uploadedAt) - new Date(b.uploadedAt);
+    const handleUpload = async (formData) => {
+        setActionError("");
+        try {
+            await createDocument(formData);
+        } catch (err) {
+            setActionError(err.message);
+            throw err;
+        }
+    };
+
+    const handleDelete = async (document) => {
+        const confirmed = window.confirm(`Delete "${document.name}"?`);
+        if (!confirmed) return;
+
+        setActionError("");
+        try {
+            await removeDocument(document._id);
+            if (selectedDocument?._id === document._id) {
+                setSelectedDocument(null);
             }
-
-            if (sortBy === "name") {
-                return a.name.localeCompare(b.name);
-            }
-
-            if (sortBy === "size") {
-                return (b.size || 0) - (a.size || 0);
-            }
-
-            return new Date(b.uploadedAt) - new Date(a.uploadedAt);
-        });
-    }, [documents, searchQuery, selectedCategory, sortBy]);
+        } catch (err) {
+            setActionError(err.message);
+        }
+    };
 
     return (
-        <div className="space-y-8">
-            <DocumentsHeader
-                total={documents.length}
-                onUpload={() => setShowUploadModal(true)}
-            />
-
-            <DocumentStats documents={documents} />
-
-            <DocumentSearch
-                value={searchQuery}
-                onChange={setSearchQuery}
-                category={selectedCategory}
-                onCategoryChange={setSelectedCategory}
-                sortBy={sortBy}
-                onSortChange={setSortBy}
-                total={filteredDocuments.length}
-            />
-
-            <DocumentFilters
-                selected={selectedCategory}
-                onSelect={setSelectedCategory}
-            />
-
-            {filteredDocuments.length === 0 ? (
-                <EmptyDocuments onUpload={() => setShowUploadModal(true)} />
-            ) : (
-                <DocumentGrid
-                    documents={filteredDocuments}
-                    onView={handleView}
-                    onDelete={handleDelete}
+        <div className="-m-4 min-h-screen bg-[#F8FAFC] p-4 sm:-m-6 sm:p-6 lg:-m-8 lg:p-8">
+            <div className="mx-auto max-w-7xl space-y-8">
+                <DocumentsHeader
+                    total={documents.length}
+                    onUpload={() => setShowUploadModal(true)}
                 />
-            )}
 
-            {showUploadModal && (
-                <DocumentUploadModal
-                    onClose={() => setShowUploadModal(false)}
-                    onUpload={handleUpload}
-                />
-            )}
+                {actionError && (
+                    <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
+                        {actionError}
+                    </div>
+                )}
 
-            {selectedDocument && (
-                <DocumentPreviewModal
-                    document={selectedDocument}
-                    onClose={() => setSelectedDocument(null)}
+                <DocumentUploadZone
+                    onUpload={(file) => {
+                        setInitialUploadFile(file);
+                        setShowUploadModal(true);
+                    }}
                 />
-            )}
+
+                {loading && <Loading label="Loading documents" />}
+
+                {!loading && error && (
+                    <ErrorState
+                        title="Documents could not load"
+                        description={error}
+                        actionLabel="Try Again"
+                        onAction={reload}
+                    />
+                )}
+
+                {!loading && !error && (
+                    <>
+                        <DocumentFilters
+                            documents={documents}
+                            selected={selectedCategory}
+                            onSelect={setSelectedCategory}
+                        />
+
+                        <DocumentSearch
+                            value={searchQuery}
+                            onChange={setSearchQuery}
+                            total={filteredDocuments.length}
+                        />
+
+                        {filteredDocuments.length === 0 ? (
+                            <EmptyDocuments
+                                onUpload={() => setShowUploadModal(true)}
+                                message={
+                                    documents.length === 0
+                                        ? "No documents uploaded yet"
+                                        : "No documents match your view"
+                                }
+                            />
+                        ) : (
+                            <DocumentGrid
+                                documents={filteredDocuments}
+                                onPreview={setSelectedDocument}
+                                onDelete={handleDelete}
+                                deletingId={deletingId}
+                            />
+                        )}
+                    </>
+                )}
+
+                {showUploadModal && (
+                    <DocumentUploadModal
+                        onClose={() => {
+                            setShowUploadModal(false);
+                            setInitialUploadFile(null);
+                        }}
+                        onUpload={handleUpload}
+                        assets={assets}
+                        uploading={uploading}
+                        progress={uploadProgress}
+                        initialFile={initialUploadFile}
+                    />
+                )}
+
+                {selectedDocument && (
+                    <DocumentPreviewModal
+                        document={selectedDocument}
+                        onClose={() => setSelectedDocument(null)}
+                        onDelete={handleDelete}
+                        deleting={deletingId === selectedDocument._id}
+                    />
+                )}
+            </div>
         </div>
     );
 };

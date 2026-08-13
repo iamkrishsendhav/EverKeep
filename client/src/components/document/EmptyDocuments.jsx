@@ -1,45 +1,26 @@
 import { FileText, Plus } from "lucide-react";
 
-const EmptyDocuments = ({ onUpload }) => {
-
+const EmptyDocuments = ({ onUpload, message = "No documents found" }) => {
     return (
-
-        <div className="rounded-3xl border-2 border-dashed border-slate-200 bg-white py-20 text-center">
-
-            <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-indigo-100">
-
-                <FileText
-                    size={42}
-                    className="text-[#5B4BFF]"
-                />
-
+        <div className="rounded-[2rem] border border-dashed border-slate-300 bg-white px-6 py-16 text-center shadow-[0_18px_50px_rgba(15,23,42,0.04)]">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-50 text-[#5B4BFF]">
+                <FileText size={30} />
             </div>
-
-            <h2 className="mt-8 text-3xl font-bold">
-
-                No Documents Yet
-
+            <h2 className="mt-6 text-2xl font-semibold tracking-tight text-slate-950">
+                {message}
             </h2>
-
-            <p className="mt-3 text-slate-500">
-
-                Store invoices, warranties, insurance papers and important files.
-
+            <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-slate-500">
+                Upload a document or adjust your search and folder filter.
             </p>
-
             <button
+                type="button"
                 onClick={onUpload}
-                className="mt-8 inline-flex items-center gap-2 rounded-2xl bg-[#5B4BFF] px-7 py-3 font-semibold text-white transition hover:scale-105"
+                className="mt-7 inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#5B4BFF] px-5 text-sm font-semibold text-white shadow-[0_16px_36px_rgba(91,75,255,0.22)] transition hover:-translate-y-0.5 hover:bg-indigo-600"
             >
-
-                <Plus size={18} />
-
-                Upload First Document
-
+                <Plus size={17} />
+                Upload Document
             </button>
-
         </div>
-
     );
 };
 
