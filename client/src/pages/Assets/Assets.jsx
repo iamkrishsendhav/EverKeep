@@ -46,12 +46,21 @@ const Assets = () => {
 
             const response = await getAssets();
 
-            setAssets(response.data);
+            setAssets(
+                Array.isArray(response?.data)
+                    ? response.data
+                    : []
+            );
 
         } catch (err) {
 
             console.error(err);
-            setError("Failed to load assets.");
+            setAssets([]);
+            setError(
+                err?.response?.data?.message ||
+                err?.message ||
+                "Failed to load assets."
+            );
 
         } finally {
 
@@ -62,6 +71,18 @@ const Assets = () => {
 
     useEffect(() => {
         fetchAssets();
+
+        window.addEventListener(
+            "everkeep:assets:changed",
+            fetchAssets
+        );
+
+        return () => {
+            window.removeEventListener(
+                "everkeep:assets:changed",
+                fetchAssets
+            );
+        };
     }, []);
 
     // ==========================
@@ -303,6 +324,32 @@ const Assets = () => {
                     expired={expired}
                     onAddAsset={() => setIsAddOpen(true)}
                 />
+
+                <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
+                    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+                        <AssetSearch
+                            value={search}
+                            onChange={setSearch}
+                        />
+
+                        <AssetSort
+                            value={sortBy}
+                            onChange={setSortBy}
+                        />
+                    </div>
+
+                    <div className="mt-4 space-y-4">
+                        <AssetCategoryFilter
+                            selected={category}
+                            onChange={setCategory}
+                        />
+
+                        <AssetStatusFilter
+                            selected={status}
+                            onChange={setStatus}
+                        />
+                    </div>
+                </div>
 
 
                 <AssetGrid

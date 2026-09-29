@@ -14,9 +14,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useAssets } from "../../hooks/useAssets";
 
 import {
-    getAssetName,
-    getProviderName,
-    getWarrantyName,
     normalizeWarrantyFormData,
 } from "./warrantyHelpers";
 

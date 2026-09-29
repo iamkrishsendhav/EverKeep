@@ -1,6 +1,5 @@
 import {
     CalendarDays,
-    Clock3,
     Eye,
     MoreVertical,
     Pencil,

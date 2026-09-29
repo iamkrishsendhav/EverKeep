@@ -129,13 +129,6 @@ const FilterSelect = ({
     onChange,
 }) => {
 
-    const selectedOption =
-        options.find(
-            (option) =>
-                option.value === value
-        );
-
-
     const isActive =
         value !== "all";
 

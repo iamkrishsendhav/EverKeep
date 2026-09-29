@@ -6,7 +6,6 @@ import {
   Package,
   Plus,
   ShieldCheck,
-  Sparkles,
   TriangleAlert,
   Users,
   Upload,

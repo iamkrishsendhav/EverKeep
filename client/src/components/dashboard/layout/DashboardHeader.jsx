@@ -6,12 +6,7 @@ import Avatar from "../../ui/Avatar";
 import { cn } from "../../../lib/cn";
 import AssetModal from "../../asset/AssetModal";
 import AssetForm from "../../asset/AssetForm";
-
-const user = {
-  firstName: "Rishi",
-  fullName: "Rishi Sharma",
-  email: "rishi@everkeep.app",
-};
+import { useAuth } from "../../../context/AuthContext";
 
 const unreadNotifications = 3;
 
@@ -46,13 +41,30 @@ const IconButton = ({ children, className = "", label, onClick }) => (
   </motion.button>
 );
 
-const GreetingBlock = () => (
+const getUserDisplay = (user) => {
+  const fullName = user?.name?.trim() || "EverKeep User";
+  const firstName = fullName.split(/\s+/)[0] || "there";
+  const email = user?.email?.trim() || "No email available";
+
+  return {
+    firstName,
+    fullName,
+    email,
+  };
+};
+
+const GreetingBlock = () => {
+  const { user: authUser } = useAuth();
+  const user = getUserDisplay(authUser);
+
+  return (
   <div className="min-w-0">
     <p className="truncate text-[15px] font-semibold tracking-tight text-slate-950 sm:text-base">
       Welcome back, {user.firstName} <span aria-hidden="true">👋</span>
     </p>
   </div>
-);
+  );
+};
 
 const GlobalSearch = () => (
   <form className="min-w-0 w-full flex-1" role="search" aria-label="Global search">
@@ -81,14 +93,19 @@ const AddAssetButton = ({ onClick }) => (
   </motion.button>
 );
 
-const UserProfileButton = () => (
+const UserProfileButton = () => {
+  const { user: authUser } = useAuth();
+  const user = getUserDisplay(authUser);
+
+  return (
   <motion.button type="button" whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }} className="inline-flex h-11 shrink-0 items-center gap-2 rounded-xl border border-slate-200/80 bg-white/85 px-1.5 pr-2 shadow-[0_2px_10px_rgba(15,23,42,0.06)] outline-none backdrop-blur-xl transition duration-200 hover:border-slate-300 hover:bg-white focus-visible:ring-2 focus-visible:ring-slate-950/15 lg:pr-3" aria-label="Open user profile menu">
     <Avatar name={user.fullName} size="sm" />
     <span className="hidden max-w-24 truncate text-sm font-semibold text-slate-900 xl:inline">{user.firstName}</span>
     <ChevronDown size={15} className="hidden shrink-0 text-slate-400 xl:block" strokeWidth={2.2} aria-hidden="true" />
     <span className="sr-only">{user.email}</span>
   </motion.button>
-);
+  );
+};
 
 const DashboardHeader = ({ onMenu }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -144,6 +161,9 @@ const DashboardHeader = ({ onMenu }) => {
             onCancel={() => setIsModalOpen(false)}
             onSuccess={() => {
               setIsModalOpen(false);
+              window.dispatchEvent(
+                new Event("everkeep:assets:changed")
+              );
             }}
           />
         </div>

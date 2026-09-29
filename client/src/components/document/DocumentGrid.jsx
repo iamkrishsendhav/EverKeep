@@ -11,7 +11,7 @@ const headers = [
 
 const DocumentGrid = ({ documents, onPreview, onDelete, deletingId }) => {
     return (
-        <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_18px_50px_rgba(15,23,42,0.04)]">
+        <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_18px_50px_rgba(15,23,42,0.08)]">
             <div className="overflow-x-auto">
                 <table className="w-full min-w-[860px] border-collapse">
                     <thead>

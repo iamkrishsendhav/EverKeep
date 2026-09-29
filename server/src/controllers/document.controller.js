@@ -1,66 +1,277 @@
+import mongoose from "mongoose";
+
 import Document from "../models/Document.js";
+import Asset from "../models/Asset.js";
+
 import cloudinary from "../config/cloudinary.js";
 
-// ----------------------------------------
-// Create Document
-// POST /api/documents
-// ----------------------------------------
 
-export const uploadDocument = async (req, res) => {
+// ============================================================================
+// DOCUMENT CONTROLLER
+// ============================================================================
+//
+// Authentication:
+// authMiddleware runs before these controllers.
+//
+// Ownership:
+// Every document belongs to req.user._id.
+//
+// Asset relationship:
+// If a document is linked to an asset, that asset must also belong
+// to the authenticated user.
+//
+// ============================================================================
+
+
+// ============================================================================
+// HELPER — GET USER ID
+// ============================================================================
+
+const getUserId = (req) => {
+
+    return (
+        req.user?._id ||
+        req.user?.id ||
+        null
+    );
+
+};
+
+
+// ============================================================================
+// HELPER - CLEAN UP UPLOADED CLOUDINARY FILE
+// ============================================================================
+
+const cleanupUploadedFile = async (file) => {
+
+    const publicId =
+        file?.filename ||
+        file?.public_id;
+
+
+    if (!publicId) {
+        return;
+    }
+
 
     try {
 
-        if (!req.file) {
+        await cloudinary.uploader.destroy(
 
-            return res.status(400).json({
+            publicId,
+
+            {
+                resource_type:
+                    file.mimetype === "application/pdf" ||
+                    file.mimetype === "application/msword" ||
+                    file.mimetype ===
+                        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                        ? "raw"
+                        : "image",
+            }
+
+        );
+
+    } catch (cloudinaryError) {
+
+        console.error(
+            "Cloudinary cleanup error:",
+            cloudinaryError
+        );
+
+    }
+
+};
+
+
+// ============================================================================
+// UPLOAD DOCUMENT
+// POST /api/documents
+// ============================================================================
+
+export const uploadDocument = async (
+    req,
+    res
+) => {
+
+    try {
+
+        const userId =
+            getUserId(req);
+
+
+        // =====================================================================
+        // AUTHENTICATION
+        // =====================================================================
+
+        if (!userId) {
+
+            return res.status(401).json({
+
                 success: false,
-                message: "Please upload a file.",
+
+                message:
+                    "Authentication required.",
+
             });
 
         }
 
-        console.log(req.file);
 
-const document = await Document.create({
+        // =====================================================================
+        // FILE VALIDATION
+        // =====================================================================
 
-    name: req.body.name || req.file.originalname,
+        if (!req.file) {
 
-    originalName: req.file.originalname,
+            return res.status(400).json({
 
-    fileUrl: req.file.path,
+                success: false,
 
-    publicId: req.file.filename || req.file.public_id,
+                message:
+                    "Please upload a file.",
 
-    fileType: req.file.mimetype,
+            });
 
-    fileSize: req.file.size,
+        }
 
-    category: req.body.category,
 
-    asset: req.body.asset || null,
+        // =====================================================================
+        // OPTIONAL ASSET VALIDATION
+        // =====================================================================
 
-});
+        let assetId = null;
 
-        res.status(201).json({
+
+        if (req.body.asset) {
+
+            if (
+                !mongoose.Types.ObjectId.isValid(
+                    req.body.asset
+                )
+            ) {
+
+                await cleanupUploadedFile(req.file);
+
+                return res.status(400).json({
+
+                    success: false,
+
+                    message:
+                        "Invalid asset ID.",
+
+                });
+
+            }
+
+
+            const asset =
+                await Asset.findOne({
+
+                    _id:
+                        req.body.asset,
+
+                    owner:
+                        userId,
+
+                });
+
+
+            if (!asset) {
+
+                await cleanupUploadedFile(req.file);
+
+                return res.status(404).json({
+
+                    success: false,
+
+                    message:
+                        "Selected asset was not found.",
+
+                });
+
+            }
+
+
+            assetId =
+                asset._id;
+
+        }
+
+
+        // =====================================================================
+        // CREATE DOCUMENT
+        // =====================================================================
+
+        const document =
+            await Document.create({
+
+                name:
+                    req.body.name?.trim() ||
+                    req.file.originalname,
+
+                originalName:
+                    req.file.originalname,
+
+                fileUrl:
+                    req.file.path,
+
+                publicId:
+                    req.file.filename ||
+                    req.file.public_id,
+
+                fileType:
+                    req.file.mimetype,
+
+                fileSize:
+                    req.file.size,
+
+                category:
+                    req.body.category ||
+                    "Other",
+
+                asset:
+                    assetId,
+
+                owner:
+                    userId,
+
+            });
+
+
+        // =====================================================================
+        // RESPONSE
+        // =====================================================================
+
+        return res.status(201).json({
 
             success: true,
 
             message:
                 "Document uploaded successfully.",
 
-            data: document,
+            data:
+                document,
 
         });
 
-    }
+    } catch (error) {
 
-    catch (error) {
+        console.error(
+            "Upload document error:",
+            error
+        );
 
-        res.status(500).json({
+        await cleanupUploadedFile(req.file);
+
+
+        return res.status(400).json({
 
             success: false,
 
-            message: error.message,
+            message:
+                error.message ||
+                "Unable to upload document.",
 
         });
 
@@ -68,40 +279,77 @@ const document = await Document.create({
 
 };
 
-// ----------------------------------------
-// Get All Documents
+
+// ============================================================================
+// GET ALL DOCUMENTS
 // GET /api/documents
-// ----------------------------------------
+// ============================================================================
 
-export const getDocuments = async (req, res) => {
+export const getDocuments = async (
+    req,
+    res
+) => {
 
     try {
 
-        const documents = await Document.find()
+        const userId =
+            getUserId(req);
 
-            .populate("asset")
 
-            .sort({ createdAt: -1 });
+        if (!userId) {
 
-        res.status(200).json({
+            return res.status(401).json({
+
+                success: false,
+
+                message:
+                    "Authentication required.",
+
+            });
+
+        }
+
+
+        const documents =
+            await Document
+                .find({
+                    owner: userId,
+                })
+                .populate(
+                    "asset",
+                    "name brand category"
+                )
+                .sort({
+                    createdAt: -1,
+                });
+
+
+        return res.status(200).json({
 
             success: true,
 
-            count: documents.length,
+            count:
+                documents.length,
 
-            data: documents,
+            data:
+                documents,
 
         });
 
-    }
+    } catch (error) {
 
-    catch (error) {
+        console.error(
+            "Get documents error:",
+            error
+        );
 
-        res.status(500).json({
+
+        return res.status(500).json({
 
             success: false,
 
-            message: error.message,
+            message:
+                "Unable to load documents.",
 
         });
 
@@ -109,18 +357,82 @@ export const getDocuments = async (req, res) => {
 
 };
 
-// ----------------------------------------
-// Get Single Document
+
+// ============================================================================
+// GET SINGLE DOCUMENT
 // GET /api/documents/:id
-// ----------------------------------------
+// ============================================================================
 
-export const getDocument = async (req, res) => {
+export const getDocument = async (
+    req,
+    res
+) => {
 
     try {
 
-        const document = await Document.findById(req.params.id)
+        const userId =
+            getUserId(req);
 
-            .populate("asset");
+
+        if (!userId) {
+
+            return res.status(401).json({
+
+                success: false,
+
+                message:
+                    "Authentication required.",
+
+            });
+
+        }
+
+
+        const {
+            id,
+        } = req.params;
+
+
+        // =====================================================================
+        // VALIDATE DOCUMENT ID
+        // =====================================================================
+
+        if (
+            !mongoose.Types.ObjectId.isValid(id)
+        ) {
+
+            return res.status(400).json({
+
+                success: false,
+
+                message:
+                    "Invalid document ID.",
+
+            });
+
+        }
+
+
+        // =====================================================================
+        // GET ONLY CURRENT USER'S DOCUMENT
+        // =====================================================================
+
+        const document =
+            await Document
+                .findOne({
+
+                    _id:
+                        id,
+
+                    owner:
+                        userId,
+
+                })
+                .populate(
+                    "asset",
+                    "name brand category"
+                );
+
 
         if (!document) {
 
@@ -128,29 +440,37 @@ export const getDocument = async (req, res) => {
 
                 success: false,
 
-                message: "Document not found.",
+                message:
+                    "Document not found.",
 
             });
 
         }
 
-        res.status(200).json({
+
+        return res.status(200).json({
 
             success: true,
 
-            data: document,
+            data:
+                document,
 
         });
 
-    }
+    } catch (error) {
 
-    catch (error) {
+        console.error(
+            "Get document error:",
+            error
+        );
 
-        res.status(500).json({
+
+        return res.status(500).json({
 
             success: false,
 
-            message: error.message,
+            message:
+                "Unable to load document.",
 
         });
 
@@ -158,16 +478,77 @@ export const getDocument = async (req, res) => {
 
 };
 
-// ----------------------------------------
-// Delete Document
-// DELETE /api/documents/:id
-// ----------------------------------------
 
-export const deleteDocument = async (req, res) => {
+// ============================================================================
+// DELETE DOCUMENT
+// DELETE /api/documents/:id
+// ============================================================================
+
+export const deleteDocument = async (
+    req,
+    res
+) => {
 
     try {
 
-        const document = await Document.findById(req.params.id);
+        const userId =
+            getUserId(req);
+
+
+        if (!userId) {
+
+            return res.status(401).json({
+
+                success: false,
+
+                message:
+                    "Authentication required.",
+
+            });
+
+        }
+
+
+        const {
+            id,
+        } = req.params;
+
+
+        // =====================================================================
+        // VALIDATE DOCUMENT ID
+        // =====================================================================
+
+        if (
+            !mongoose.Types.ObjectId.isValid(id)
+        ) {
+
+            return res.status(400).json({
+
+                success: false,
+
+                message:
+                    "Invalid document ID.",
+
+            });
+
+        }
+
+
+        // =====================================================================
+        // FIND ONLY USER'S DOCUMENT
+        // =====================================================================
+
+        const document =
+            await Document.findOne({
+
+                _id:
+                    id,
+
+                owner:
+                    userId,
+
+            });
+
 
         if (!document) {
 
@@ -175,43 +556,89 @@ export const deleteDocument = async (req, res) => {
 
                 success: false,
 
-                message: "Document not found.",
+                message:
+                    "Document not found.",
 
             });
 
         }
 
-       await cloudinary.uploader.destroy(
-    document.publicId,
-    {
-        resource_type:
-            document.fileType === "application/pdf"
-                ? "raw"
-                : "image",
-    }
-);
+
+        // =====================================================================
+        // DELETE FROM CLOUDINARY
+        // =====================================================================
+
+        if (document.publicId) {
+
+            try {
+
+                await cloudinary.uploader.destroy(
+
+                    document.publicId,
+
+                    {
+                        resource_type:
+                            document.fileType ===
+                            "application/pdf" ||
+                            document.fileType ===
+                            "application/msword" ||
+                            document.fileType ===
+                            "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                                ? "raw"
+                                : "image",
+                    }
+
+                );
+
+            } catch (cloudinaryError) {
+
+                console.error(
+                    "Cloudinary delete error:",
+                    cloudinaryError
+                );
+
+            }
+
+        }
+
+
+        // =====================================================================
+        // DELETE DATABASE RECORD
+        // =====================================================================
 
         await document.deleteOne();
 
-        res.status(200).json({
+
+        // =====================================================================
+        // RESPONSE
+        // =====================================================================
+
+        return res.status(200).json({
 
             success: true,
 
-            message: "Document deleted successfully.",
+            message:
+                "Document deleted successfully.",
+
+        });
+
+    } catch (error) {
+
+        console.error(
+            "Delete document error:",
+            error
+        );
+
+
+        return res.status(500).json({
+
+            success: false,
+
+            message:
+                "Unable to delete document.",
 
         });
 
     }
-
-   catch (error) {
-
-    console.error(error);
-
-    res.status(500).json({
-        success: false,
-        message: error.message,
-    });
-
-}
 
 };

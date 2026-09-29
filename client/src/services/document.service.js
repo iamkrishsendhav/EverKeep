@@ -13,10 +13,6 @@ export const getDocumentById = async (id) => {
 export const uploadDocument = async (formData, config = {}) => {
     const res = await api.post("/documents", formData, {
         ...config,
-        headers: {
-            "Content-Type": "multipart/form-data",
-            ...(config.headers || {}),
-        },
     });
 
     return res.data;

@@ -22,54 +22,71 @@
   --color-danger-500: #ef4444;
   --color-danger-600: #dc2626;
 
-  --shadow-card: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
-  --shadow-card-hover: 0 18px 45px rgba(15,23,42,0.10);
-  --shadow-panel: 0 30px 100px rgba(79,70,229,0.24);
+  --shadow-card: 0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-card-hover: 0 18px 45px rgba(15, 23, 42, 0.10);
+  --shadow-panel: 0 30px 100px rgba(79, 70, 229, 0.20);
 }
 
-* {
-  margin: 0;
-  padding: 0;
+:root {
+  color-scheme: light;
+  font-family: var(--font-sans);
+}
+
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
 
 html {
-  height: 100%;
-  overflow: hidden;
+  min-height: 100%;
   scroll-behavior: smooth;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 body {
-  min-height: 100%;
-  background: #f8fafc;
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  background: #ffffff;
   color: #0f172a;
   font-family: var(--font-sans);
-  text-rendering: geometricPrecision;
-  overflow: hidden;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 #root {
-  height: 100%;
-  overflow: hidden;
+  min-height: 100vh;
+  width: 100%;
+  overflow-x: hidden;
 }
 
 a {
-  text-decoration: none;
   color: inherit;
+  text-decoration: none;
 }
 
 button {
   cursor: pointer;
 }
 
-img {
+img,
+svg,
+video,
+canvas {
   display: block;
   max-width: 100%;
 }
 
+img {
+  height: auto;
+}
+
 ::selection {
-  background: #dbeafe;
-  color: #172554;
+  background: #e0e7ff;
+  color: #312e81;
 }
 
 * {
@@ -88,12 +105,14 @@ img {
 
 *::-webkit-scrollbar-thumb {
   border-radius: 999px;
-  background-color: rgba(148, 163, 184, 0.45);
+  background: rgba(148, 163, 184, 0.45);
 }
 
 *::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(100, 116, 139, 0.75);
+  background: rgba(100, 116, 139, 0.75);
 }
+
+/* Shared landing-page layout */
 
 .landing-section {
   padding: 5.5rem 0;
@@ -104,19 +123,23 @@ img {
 }
 
 .landing-hero {
-  margin-top: 4rem;
-  padding-top: 3rem;
+  width: 100%;
+  margin-top: 0;
+  padding-top: 2rem;
 }
 
 .landing-page :where(h1, h2, h3, h4) {
-  padding-bottom: 0.35rem;
+  margin: 0;
+  padding-bottom: 0;
 }
 
 .landing-container {
   width: 100%;
   max-width: 80rem;
-  margin: 0 auto;
-  padding: 0 1.5rem;
+  margin-right: auto;
+  margin-left: auto;
+  padding-right: 1.25rem;
+  padding-left: 1.25rem;
 }
 
 .landing-card {
@@ -124,7 +147,11 @@ img {
   border-radius: 1.5rem;
   background: #ffffff;
   box-shadow: var(--shadow-card);
-  transition: transform 220ms ease, border-color 220ms ease, box-shadow 220ms ease, background-color 220ms ease;
+  transition:
+    transform 220ms ease,
+    border-color 220ms ease,
+    box-shadow 220ms ease,
+    background-color 220ms ease;
 }
 
 .landing-card-hover:hover {
@@ -140,7 +167,7 @@ img {
 
 .landing-button {
   display: inline-flex;
-  height: 3rem;
+  min-height: 3rem;
   align-items: center;
   justify-content: center;
   gap: 0.625rem;
@@ -149,7 +176,12 @@ img {
   font-size: 0.875rem;
   font-weight: 700;
   line-height: 1;
-  transition: transform 220ms ease, background-color 220ms ease, border-color 220ms ease, box-shadow 220ms ease, color 220ms ease;
+  transition:
+    transform 220ms ease,
+    background-color 220ms ease,
+    border-color 220ms ease,
+    box-shadow 220ms ease,
+    color 220ms ease;
 }
 
 .landing-button:hover {
@@ -182,12 +214,14 @@ img {
 .landing-button-inverse {
   background: #ffffff;
   color: #4f46e5;
-  box-shadow: 0 14px 34px rgba(15,23,42,0.16);
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.16);
 }
 
 .landing-button-inverse:hover {
-  box-shadow: 0 18px 42px rgba(15,23,42,0.20);
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.20);
 }
+
+/* FAQ */
 
 .faq-list {
   display: grid;
@@ -200,7 +234,10 @@ img {
   border-radius: 1.5rem;
   background: #ffffff;
   box-shadow: var(--shadow-card);
-  transition: border-color 220ms ease, box-shadow 220ms ease, background-color 220ms ease;
+  transition:
+    border-color 220ms ease,
+    box-shadow 220ms ease,
+    background-color 220ms ease;
 }
 
 .faq-item:hover,
@@ -215,7 +252,7 @@ img {
   align-items: center;
   justify-content: space-between;
   gap: 1.25rem;
-  padding: 1.35rem 1.5rem;
+  padding: 1.35rem 1.25rem;
   text-align: left;
   outline: none;
 }
@@ -241,7 +278,10 @@ img {
   border-radius: 999px;
   background: #f8fafc;
   color: #94a3b8;
-  transition: transform 220ms ease, background-color 220ms ease, color 220ms ease;
+  transition:
+    transform 220ms ease,
+    background-color 220ms ease,
+    color 220ms ease;
 }
 
 .faq-item-open .faq-icon {
@@ -252,7 +292,7 @@ img {
 
 .faq-answer {
   max-width: 60rem;
-  padding: 0 1.5rem 1.5rem;
+  padding: 0 1.25rem 1.5rem;
   color: #475569;
   font-size: 0.95rem;
   line-height: 1.8;
@@ -265,7 +305,7 @@ img {
   gap: 0.75rem;
   border: 1px solid #e0e7ff;
   border-radius: 1rem;
-  background: rgba(238,242,255,0.72);
+  background: rgba(238, 242, 255, 0.72);
   padding: 1rem 1.25rem;
   color: #334155;
   font-size: 0.875rem;
@@ -274,7 +314,26 @@ img {
   text-align: center;
 }
 
+/* Tablet */
+
 @media (min-width: 640px) {
+  .landing-container {
+    padding-right: 1.5rem;
+    padding-left: 1.5rem;
+  }
+
+  .landing-section {
+    padding: 6.5rem 0;
+  }
+
+  .landing-section-tight {
+    padding: 6rem 0;
+  }
+
+  .landing-hero {
+    padding-top: 2.5rem;
+  }
+
   .faq-trigger {
     padding: 1.5rem 2rem;
   }
@@ -293,28 +352,16 @@ img {
   }
 }
 
-@media (min-width: 640px) {
-  .landing-section {
-    padding: 6.5rem 0;
-  }
-
-  .landing-section-tight {
-    padding: 6rem 0;
-  }
-
-.landing-hero {
-  margin-top: 2.5rem;
-  padding-top: 3rem;
-}
-
-  .landing-container {
-    padding: 0 5rem;
-  }
-}
+/* Desktop */
 
 @media (min-width: 1024px) {
+  .landing-container {
+    padding-right: 2rem;
+    padding-left: 2rem;
+  }
+
   .landing-section {
-    padding: 3rem 5rem;
+    padding: 7rem 0;
   }
 
   .landing-section-tight {
@@ -322,11 +369,15 @@ img {
   }
 
   .landing-hero {
-    margin-top: 4rem;
     padding-top: 3rem;
   }
+}
 
+/* Large desktop */
+
+@media (min-width: 1280px) {
   .landing-container {
-    padding: 0 3rem;
+    padding-right: 2.5rem;
+    padding-left: 2.5rem;
   }
 }

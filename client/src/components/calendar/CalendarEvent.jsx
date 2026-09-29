@@ -9,7 +9,6 @@ import {
     Wrench,
     Clock3,
     Bell,
-    CircleAlert,
 } from "lucide-react";
 
 import {
@@ -20,7 +19,6 @@ import {
     getEventTypeMeta,
     getPriorityMeta,
     formatEventTime,
-    getEventId,
 } from "./calendarHelpers";
 
 
@@ -204,10 +202,6 @@ const CalendarEvent = ({
     // =========================================================================
     // EVENT DATA
     // =========================================================================
-
-    const eventId =
-        getEventId(event);
-
 
     const type =
         event?.type || "custom";

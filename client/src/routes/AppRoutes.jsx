@@ -1,51 +1,63 @@
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import {
+    BrowserRouter,
+    Route,
+    Routes,
+} from "react-router-dom";
+
+
+// ============================================================================
+// PUBLIC PAGES
+// ============================================================================
 
 import Landing from "../pages/Landing/Landing";
 import Login from "../pages/Auth/Login";
 import Register from "../pages/Auth/Register";
+
+
+// ============================================================================
+// DASHBOARD
+// ============================================================================
+
 import Dashboard from "../pages/Dashboard/Dashboard";
-import NotFound from "../components/common/NotFound";
 import DashboardLayout from "../components/dashboard/layout/DashboardLayout";
+
+
+// ============================================================================
+// DASHBOARD PAGES
+// ============================================================================
 
 import Assets from "../pages/Assets/Assets";
 import Documents from "../pages/Document/Documents";
 import Warranty from "../pages/Warranty/Warranty";
 import Calendar from "../pages/Calendar/Calendar";
+import Subscriptions from "../pages/Subscriptions/Subscriptions";
+import Family from "../pages/Family/Family";
+import AI from "../pages/AI/AI";
 
 
-const DashboardPagePlaceholder = ({
-    title,
-    description,
-}) => (
-    <section className="space-y-4">
-        <div className="rounded-[1.75rem] border border-slate-200/80 bg-white/80 p-6 shadow-[0_16px_48px_rgba(15,23,42,0.06)] backdrop-blur-xl">
+// ============================================================================
+// COMMON
+// ============================================================================
 
-            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
-                Workspace
-            </p>
+import NotFound from "../components/common/NotFound";
+import ProtectedRoute from "../components/common/ProtectedRoute";
 
-            <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">
-                {title}
-            </h1>
 
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
-                {description}
-            </p>
-
-        </div>
-    </section>
-);
-
+// ============================================================================
+// APP ROUTES
+// ============================================================================
 
 const AppRoutes = () => {
+
     return (
+
         <BrowserRouter>
 
             <Routes>
 
-                {/* ------------------------------------------------
-                    Public Routes
-                ------------------------------------------------ */}
+                {/* ============================================================
+                    PUBLIC ROUTES
+                ============================================================ */}
 
                 <Route
                     path="/"
@@ -63,112 +75,367 @@ const AppRoutes = () => {
                 />
 
 
-                {/* ------------------------------------------------
-                    Dashboard Routes
-                ------------------------------------------------ */}
+                {/* ============================================================
+                    PROTECTED ROUTES
+                ============================================================ */}
 
                 <Route
-                    path="/dashboard/*"
-                    element={<DashboardLayout />}
+                    element={<ProtectedRoute />}
                 >
 
-                    {/* Dashboard */}
-
                     <Route
-                        index
-                        element={<Dashboard />}
-                    />
+                        path="/dashboard/*"
+                        element={<DashboardLayout />}
+                    >
+
+                        {/* ----------------------------------------------------
+                            DASHBOARD
+                        ---------------------------------------------------- */}
+
+                        <Route
+                            index
+                            element={<Dashboard />}
+                        />
 
 
-                    {/* Assets */}
+                        {/* ----------------------------------------------------
+                            ASSETS
+                        ---------------------------------------------------- */}
 
-                    <Route
-                        path="assets"
-                        element={<Assets />}
-                    />
-
-
-                    {/* Documents */}
-
-                    <Route
-                        path="documents"
-                        element={<Documents />}
-                    />
+                        <Route
+                            path="assets"
+                            element={<Assets />}
+                        />
 
 
-                    {/* Warranty */}
+                        {/* ----------------------------------------------------
+                            DOCUMENTS
+                        ---------------------------------------------------- */}
 
-                    <Route
-                        path="warranty"
-                        element={<Warranty />}
-                    />
+                        <Route
+                            path="documents"
+                            element={<Documents />}
+                        />
 
 
-                    {/* ------------------------------------------------
-                        Upcoming Modules
-                    ------------------------------------------------ */}
+                        {/* ----------------------------------------------------
+                            WARRANTY
+                        ---------------------------------------------------- */}
 
-                    <Route
-                        path="calendar"
-                        element={<Calendar />}
-                    />
+                        <Route
+                            path="warranty"
+                            element={<Warranty />}
+                        />
 
-                    <Route
-                        path="family"
-                        element={
-                            <DashboardPagePlaceholder
-                                title="Family"
-                                description="Family sharing and household visibility will appear here in the same fixed layout."
-                            />
-                        }
-                    />
 
-                    <Route
-                        path="ai"
-                        element={
-                            <DashboardPagePlaceholder
-                                title="AI Assistant"
-                                description="AI recommendations and automation actions will render here with the existing dashboard chrome."
-                            />
-                        }
-                    />
+                        {/* ----------------------------------------------------
+                            CALENDAR
+                        ---------------------------------------------------- */}
 
-                    <Route
-                        path="analytics"
-                        element={
-                            <DashboardPagePlaceholder
-                                title="Analytics"
-                                description="Performance and insight reporting will render here with the same spacing system and shell."
-                            />
-                        }
-                    />
+                        <Route
+                            path="calendar"
+                            element={<Calendar />}
+                        />
 
-                    <Route
-                        path="notifications"
-                        element={
-                            <DashboardPagePlaceholder
-                                title="Notifications"
-                                description="Activity streams and system alerts will render here in the shared content region."
-                            />
-                        }
-                    />
 
-                    <Route
-                        path="settings"
-                        element={
-                            <DashboardPagePlaceholder
-                                title="Settings"
-                                description="Account and preference management will remain within the same fixed navigation and header structure."
-                            />
-                        }
-                    />
+                        {/* ----------------------------------------------------
+                            SUBSCRIPTIONS
+                        ---------------------------------------------------- */}
+
+                        <Route
+                            path="subscriptions"
+                            element={<Subscriptions />}
+                        />
+
+
+                        {/* ----------------------------------------------------
+                            FAMILY
+                        ---------------------------------------------------- */}
+
+                        <Route
+                            path="family"
+                            element={<Family />}
+                        />
+
+
+                        {/* ----------------------------------------------------
+                            AI ASSISTANT
+                        ---------------------------------------------------- */}
+
+                        <Route
+                            path="ai"
+                            element={<AI />}
+                        />
+
+
+                        {/* ----------------------------------------------------
+                            ANALYTICS
+                        ---------------------------------------------------- */}
+
+                        <Route
+                            path="analytics"
+                            element={
+                                <section className="space-y-4">
+
+                                    <div
+                                        className="
+                                            rounded-[1.75rem]
+                                            border
+                                            border-slate-200/80
+                                            bg-white/80
+                                            p-6
+                                            shadow-[0_16px_48px_rgba(15,23,42,0.06)]
+                                            backdrop-blur-xl
+                                        "
+                                    >
+
+                                        <p
+                                            className="
+                                                text-[11px]
+                                                font-semibold
+                                                uppercase
+                                                tracking-[0.24em]
+                                                text-slate-500
+                                            "
+                                        >
+                                            Workspace
+                                        </p>
+
+                                        <h1
+                                            className="
+                                                mt-2
+                                                text-3xl
+                                                font-semibold
+                                                tracking-tight
+                                                text-slate-950
+                                            "
+                                        >
+                                            Analytics
+                                        </h1>
+
+                                        <p
+                                            className="
+                                                mt-3
+                                                max-w-2xl
+                                                text-sm
+                                                leading-6
+                                                text-slate-600
+                                            "
+                                        >
+                                            Performance and insight
+                                            reporting will appear here.
+                                        </p>
+
+                                    </div>
+
+                                </section>
+                            }
+                        />
+
+
+                        {/* ----------------------------------------------------
+                            NOTIFICATIONS
+                        ---------------------------------------------------- */}
+
+                        <Route
+                            path="notifications"
+                            element={
+                                <section className="space-y-4">
+
+                                    <div
+                                        className="
+                                            rounded-[1.75rem]
+                                            border
+                                            border-slate-200/80
+                                            bg-white/80
+                                            p-6
+                                            shadow-[0_16px_48px_rgba(15,23,42,0.06)]
+                                            backdrop-blur-xl
+                                        "
+                                    >
+
+                                        <p
+                                            className="
+                                                text-[11px]
+                                                font-semibold
+                                                uppercase
+                                                tracking-[0.24em]
+                                                text-slate-500
+                                            "
+                                        >
+                                            Workspace
+                                        </p>
+
+                                        <h1
+                                            className="
+                                                mt-2
+                                                text-3xl
+                                                font-semibold
+                                                tracking-tight
+                                                text-slate-950
+                                            "
+                                        >
+                                            Notifications
+                                        </h1>
+
+                                        <p
+                                            className="
+                                                mt-3
+                                                max-w-2xl
+                                                text-sm
+                                                leading-6
+                                                text-slate-600
+                                            "
+                                        >
+                                            Activity streams and system
+                                            alerts will appear here.
+                                        </p>
+
+                                    </div>
+
+                                </section>
+                            }
+                        />
+
+
+                        {/* ----------------------------------------------------
+                            SETTINGS
+                        ---------------------------------------------------- */}
+
+                        <Route
+                            path="settings"
+                            element={
+                                <section className="space-y-4">
+
+                                    <div
+                                        className="
+                                            rounded-[1.75rem]
+                                            border
+                                            border-slate-200/80
+                                            bg-white/80
+                                            p-6
+                                            shadow-[0_16px_48px_rgba(15,23,42,0.06)]
+                                            backdrop-blur-xl
+                                        "
+                                    >
+
+                                        <p
+                                            className="
+                                                text-[11px]
+                                                font-semibold
+                                                uppercase
+                                                tracking-[0.24em]
+                                                text-slate-500
+                                            "
+                                        >
+                                            Workspace
+                                        </p>
+
+                                        <h1
+                                            className="
+                                                mt-2
+                                                text-3xl
+                                                font-semibold
+                                                tracking-tight
+                                                text-slate-950
+                                            "
+                                        >
+                                            Settings
+                                        </h1>
+
+                                        <p
+                                            className="
+                                                mt-3
+                                                max-w-2xl
+                                                text-sm
+                                                leading-6
+                                                text-slate-600
+                                            "
+                                        >
+                                            Account and preference
+                                            management will appear here.
+                                        </p>
+
+                                    </div>
+
+                                </section>
+                            }
+                        />
+
+
+                        {/* ----------------------------------------------------
+                            HELP
+                        ---------------------------------------------------- */}
+
+                        <Route
+                            path="help"
+                            element={
+                                <section className="space-y-4">
+
+                                    <div
+                                        className="
+                                            rounded-[1.75rem]
+                                            border
+                                            border-slate-200/80
+                                            bg-white/80
+                                            p-6
+                                            shadow-[0_16px_48px_rgba(15,23,42,0.06)]
+                                            backdrop-blur-xl
+                                        "
+                                    >
+
+                                        <p
+                                            className="
+                                                text-[11px]
+                                                font-semibold
+                                                uppercase
+                                                tracking-[0.24em]
+                                                text-slate-500
+                                            "
+                                        >
+                                            Workspace
+                                        </p>
+
+                                        <h1
+                                            className="
+                                                mt-2
+                                                text-3xl
+                                                font-semibold
+                                                tracking-tight
+                                                text-slate-950
+                                            "
+                                        >
+                                            Help & Support
+                                        </h1>
+
+                                        <p
+                                            className="
+                                                mt-3
+                                                max-w-2xl
+                                                text-sm
+                                                leading-6
+                                                text-slate-600
+                                            "
+                                        >
+                                            Support resources, account help,
+                                            and product guidance will appear
+                                            here.
+                                        </p>
+
+                                    </div>
+
+                                </section>
+                            }
+                        />
+
+                    </Route>
 
                 </Route>
 
 
-                {/* ------------------------------------------------
+                {/* ============================================================
                     404
-                ------------------------------------------------ */}
+                ============================================================ */}
 
                 <Route
                     path="*"

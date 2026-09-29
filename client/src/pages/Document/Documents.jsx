@@ -42,7 +42,9 @@ const Documents = () => {
         const loadAssets = async () => {
             try {
                 const response = await getAssets();
-                const nextAssets = Array.isArray(response.data) ? response.data : [];
+                const nextAssets = Array.isArray(response?.data)
+                    ? response.data
+                    : [];
                 if (isMounted) setAssets(nextAssets);
             } catch {
                 if (isMounted) setAssets([]);

@@ -39,7 +39,7 @@ const UploadDocumentModal = ({
 
     const submit = async (event) => {
         event.preventDefault();
-        if (!file) return;
+        if (!file || uploading || done) return;
 
         const formData = new FormData();
         formData.append("file", file);

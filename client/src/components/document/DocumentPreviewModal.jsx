@@ -1,6 +1,5 @@
 import { Download, FileText, Trash2, X } from "lucide-react";
-import { useEffect, useState } from "react";
-import { Document, Page, pdfjs } from "react-pdf";
+import { useEffect } from "react";
 
 import {
     formatDate,
@@ -10,14 +9,6 @@ import {
     isImageFile,
     isPdfFile,
 } from "./documentUtils";
-
-import "react-pdf/dist/Page/AnnotationLayer.css";
-import "react-pdf/dist/Page/TextLayer.css";
-
-pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-    "pdfjs-dist/build/pdf.worker.min.mjs",
-    import.meta.url
-).toString();
 
 const Detail = ({ label, value }) => (
     <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
@@ -37,9 +28,6 @@ const DocumentPreviewModal = ({
     onDelete,
     deleting,
 }) => {
-
-    const [numPages, setNumPages] = useState(0);
-
     useEffect(() => {
 
         const handleKey = (e) => {
@@ -51,10 +39,6 @@ const DocumentPreviewModal = ({
         return () => window.removeEventListener("keydown", handleKey);
 
     }, [onClose]);
-
-    const onLoadSuccess = ({ numPages }) => {
-        setNumPages(numPages);
-    };
 
     const canPreview =
         isImageFile(document.fileType) ||

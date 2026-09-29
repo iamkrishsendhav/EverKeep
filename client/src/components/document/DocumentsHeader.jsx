@@ -22,7 +22,7 @@ const DocumentsHeader = ({ total, onUpload }) => {
                 className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#5B4BFF] px-5 text-sm font-semibold text-white shadow-[0_16px_36px_rgba(91,75,255,0.22)] transition hover:-translate-y-0.5 hover:bg-indigo-600"
             >
                 <Plus size={18} />
-                Upload Document
+                Upload Krish
             </button>
         </div>
     );

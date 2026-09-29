@@ -4,7 +4,6 @@ import {
     FileText,
     CalendarDays,
     ShieldCheck,
-    Users,
     Bot,
     BarChart3,
     Bell,
