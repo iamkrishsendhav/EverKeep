@@ -309,8 +309,6 @@ const invitationSchema = new mongoose.Schema(
             type: String,
 
             required: true,
-
-            unique: true,
         },
 
         // --------------------------------------------------------------------
@@ -798,6 +796,24 @@ familySchema.index({
     "invitations.email": 1,
     "invitations.status": 1,
 });
+
+// Only invitation tokens that are actually present participate in this
+// unique index. Without the partial filter, MongoDB indexes missing tokens
+// as null and prevents multiple families from having no invitations.
+familySchema.index(
+    {
+        "invitations.token": 1,
+    },
+    {
+        unique: true,
+        partialFilterExpression: {
+            "invitations.token": {
+                $type: "string",
+            },
+        },
+        name: "invitations.token_1",
+    },
+);
 
 // Find notifications for a specific user.
 familySchema.index({

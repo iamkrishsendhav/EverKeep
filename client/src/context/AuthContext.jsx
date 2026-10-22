@@ -4,6 +4,7 @@ import {
     useEffect,
     useState,
 } from "react";
+import { getCurrentUser } from "../services/auth.service";
 
 
 // ============================================================================
@@ -220,6 +221,16 @@ export const AuthProvider = ({
 
     };
 
+    const refreshUser = async () => {
+        if (!token) return null;
+        const currentUser = await getCurrentUser();
+        if (currentUser) {
+            localStorage.setItem("everkeep:user", JSON.stringify(currentUser));
+            setUser(currentUser);
+        }
+        return currentUser;
+    };
+
 
     // =========================================================================
     // AUTH STATE
@@ -246,6 +257,8 @@ export const AuthProvider = ({
         login,
 
         logout,
+
+        refreshUser,
 
     };
 

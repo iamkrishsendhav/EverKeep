@@ -353,6 +353,8 @@ subscriptionSchema.index({
     nextBillingDate: 1,
 });
 
+subscriptionSchema.index({ status: 1, autoRenew: 1, nextBillingDate: 1 });
+
 // User + status
 subscriptionSchema.index({
     user: 1,

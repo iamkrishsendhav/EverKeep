@@ -19,10 +19,10 @@ import api from "../lib/axios";
 // GET /api/assets
 // ============================================================================
 
-export const getAssets = async () => {
+export const getAssets = async (params = {}) => {
 
     const response =
-        await api.get("/assets");
+        await api.get("/assets", { params });
 
     return response.data;
 
@@ -109,4 +109,9 @@ export const getAsset = async (
 
     return response.data;
 
+};
+
+export const getAssetAccessDetails = async (id, { signal } = {}) => {
+    const response = await api.get(`/assets/${encodeURIComponent(id)}/access`, { signal });
+    return response.data?.data;
 };

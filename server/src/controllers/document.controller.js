@@ -61,13 +61,14 @@ const cleanupUploadedFile = async (file) => {
             publicId,
 
             {
-                resource_type:
+                resource_type: file.resource_type || (
                     file.mimetype === "application/pdf" ||
                     file.mimetype === "application/msword" ||
                     file.mimetype ===
                         "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                         ? "raw"
-                        : "image",
+                        : "image"
+                ),
             }
 
         );

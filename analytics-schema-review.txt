@@ -1,0 +1,3455 @@
+
+
+========== server/src/models/Asset.js ==========
+
+import mongoose from "mongoose";
+
+// ============================================================================
+// ASSET SCHEMA
+// ============================================================================
+//
+// EverKeep Asset
+//
+// Ownership:
+//     owner → actual user who owns the asset
+//
+// Family:
+//     family → optional family workspace
+//
+// Sharing:
+//     sharing.shared → whether the asset is shared with family
+//     sharing.members → individual family members with access
+//
+// IMPORTANT:
+// Existing asset functionality remains unchanged.
+// Family fields are optional, so existing assets continue to work normally.
+//
+// ============================================================================
+
+// ============================================================================
+// FAMILY MEMBER ACCESS SCHEMA
+// ============================================================================
+
+const assetMemberAccessSchema = new mongoose.Schema(
+    {
+        // ----------------------------------------------------------------
+        // FAMILY MEMBER
+        // ----------------------------------------------------------------
+
+        user: {
+            type: mongoose.Schema.Types.ObjectId,
+
+            ref: "User",
+
+            required: true,
+        },
+
+        // ----------------------------------------------------------------
+        // ACCESS LEVEL
+        // ----------------------------------------------------------------
+
+        access: {
+            type: String,
+
+            enum: ["View", "Edit"],
+
+            default: "View",
+        },
+
+        // ----------------------------------------------------------------
+        // SHARED AT
+        // ----------------------------------------------------------------
+
+        sharedAt: {
+            type: Date,
+
+            default: Date.now,
+        },
+    },
+
+    {
+        _id: false,
+    },
+);
+
+// ============================================================================
+// ASSET SHARING SCHEMA
+// ============================================================================
+
+const assetSharingSchema = new mongoose.Schema(
+    {
+        // ----------------------------------------------------------------
+        // SHARING ENABLED
+        // ----------------------------------------------------------------
+
+        shared: {
+            type: Boolean,
+
+            default: false,
+        },
+
+        // ----------------------------------------------------------------
+        // FAMILY MEMBERS
+        // ----------------------------------------------------------------
+
+        members: {
+            type: [assetMemberAccessSchema],
+
+            default: [],
+        },
+    },
+
+    {
+        _id: false,
+    },
+);
+
+// ============================================================================
+// ASSET SCHEMA
+// ============================================================================
+
+const assetSchema = new mongoose.Schema(
+    {
+        // =====================================================================
+        // BASIC INFORMATION
+        // =====================================================================
+
+        name: {
+            type: String,
+
+            required: [true, "Asset name is required"],
+
+            trim: true,
+
+            maxlength: 100,
+        },
+
+        category: {
+            type: String,
+
+            required: [true, "Category is required"],
+
+            trim: true,
+
+            enum: [
+                "Electronics",
+                "Appliances",
+                "Furniture",
+                "Vehicle",
+                "Property",
+                "Insurance",
+                "Subscription",
+                "Documents",
+                "Other",
+            ],
+        },
+
+        brand: {
+            type: String,
+
+            trim: true,
+
+            default: "",
+
+            maxlength: 100,
+        },
+
+        model: {
+            type: String,
+
+            trim: true,
+
+            default: "",
+
+            maxlength: 100,
+        },
+
+        // =====================================================================
+        // PURCHASE INFORMATION
+        // =====================================================================
+
+        purchaseDate: {
+            type: Date,
+        },
+
+        purchasePrice: {
+            type: Number,
+
+            min: 0,
+
+            default: 0,
+        },
+
+        // =====================================================================
+        // WARRANTY
+        // =====================================================================
+
+        warrantyExpiry: {
+            type: Date,
+        },
+
+        // =====================================================================
+        // IDENTIFICATION
+        // =====================================================================
+
+        serialNumber: {
+            type: String,
+
+            trim: true,
+
+            default: "",
+
+            maxlength: 150,
+        },
+
+        // =====================================================================
+        // MEDIA
+        // =====================================================================
+
+        image: {
+            type: String,
+
+            trim: true,
+
+            default: "",
+        },
+
+        // =====================================================================
+        // NOTES
+        // =====================================================================
+
+        notes: {
+            type: String,
+
+            trim: true,
+
+            maxlength: 500,
+
+            default: "",
+        },
+
+        // =====================================================================
+        // REMINDER
+        // =====================================================================
+
+        reminderEnabled: {
+            type: Boolean,
+
+            default: true,
+        },
+
+        // =====================================================================
+        // STATUS
+        // =====================================================================
+
+        status: {
+            type: String,
+
+            enum: ["Active", "Expired", "Archived"],
+
+            default: "Active",
+        },
+
+        // =====================================================================
+        // OWNER
+        // =====================================================================
+        //
+        // The actual EverKeep user who owns this asset.
+        //
+        // authMiddleware
+        //      ↓
+        // req.user
+        //      ↓
+        // controller
+        //      ↓
+        // owner: req.user._id
+        //
+        // =====================================================================
+
+        owner: {
+            type: mongoose.Schema.Types.ObjectId,
+
+            ref: "User",
+
+            required: [true, "Asset owner is required"],
+
+            index: true,
+        },
+
+        // =====================================================================
+        // FAMILY
+        // =====================================================================
+        //
+        // Optional.
+        //
+        // An asset can remain a personal asset even if the user has a Family.
+        //
+        // When the asset becomes a Family asset:
+        //
+        //     family → Family._id
+        //
+        // =====================================================================
+
+        family: {
+            type: mongoose.Schema.Types.ObjectId,
+
+            ref: "Family",
+
+            default: null,
+
+            index: true,
+        },
+
+        // =====================================================================
+        // FAMILY SHARING
+        // =====================================================================
+
+        sharing: {
+            type: assetSharingSchema,
+
+            default: () => ({
+                shared: false,
+
+                members: [],
+            }),
+        },
+    },
+
+    {
+        timestamps: true,
+    },
+);
+
+// ============================================================================
+// INDEXES
+// ============================================================================
+//
+// Existing owner-based queries remain optimized.
+//
+// ============================================================================
+
+assetSchema.index({
+    owner: 1,
+
+    createdAt: -1,
+});
+
+// ============================================================================
+// FAMILY INDEX
+// ============================================================================
+//
+// Useful for:
+//
+// Asset.find({
+//     family: familyId
+// })
+//
+// ============================================================================
+
+assetSchema.index({
+    family: 1,
+
+    createdAt: -1,
+});
+
+// ============================================================================
+// FAMILY MEMBER SHARING INDEX
+// ============================================================================
+//
+// Useful when checking whether a particular user has access to an asset.
+//
+// ============================================================================
+
+assetSchema.index({
+    "sharing.members.user": 1,
+});
+
+// ============================================================================
+// MODEL
+// ============================================================================
+
+const Asset = mongoose.model("Asset", assetSchema);
+
+export default Asset;
+
+
+========== server/src/models/Warranty.js ==========
+
+import mongoose from "mongoose";
+
+
+// ============================================================================
+// WARRANTY MEMBER ACCESS SCHEMA
+// ============================================================================
+
+const warrantyMemberAccessSchema = new mongoose.Schema(
+    {
+        user: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+            required: true,
+        },
+
+        access: {
+            type: String,
+            enum: ["View", "Edit"],
+            default: "View",
+        },
+
+        sharedAt: {
+            type: Date,
+            default: Date.now,
+        },
+    },
+    {
+        _id: false,
+    }
+);
+
+
+// ============================================================================
+// WARRANTY SHARING SCHEMA
+// ============================================================================
+
+const warrantySharingSchema = new mongoose.Schema(
+    {
+        shared: {
+            type: Boolean,
+            default: false,
+        },
+
+        members: {
+            type: [warrantyMemberAccessSchema],
+            default: [],
+        },
+    },
+    {
+        _id: false,
+    }
+);
+
+
+// ============================================================================
+// WARRANTY SCHEMA
+// ============================================================================
+
+const warrantySchema = new mongoose.Schema(
+    {
+        // ====================================================================
+        // BASIC INFORMATION
+        // ====================================================================
+
+        title: {
+            type: String,
+            required: [
+                true,
+                "Warranty title is required",
+            ],
+            trim: true,
+            maxlength: 120,
+        },
+
+
+        // ====================================================================
+        // LINKED ASSET
+        // ====================================================================
+
+        asset: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Asset",
+            default: null,
+        },
+
+
+        // ====================================================================
+        // PROVIDER
+        // ====================================================================
+
+        provider: {
+            type: String,
+            trim: true,
+            maxlength: 120,
+            default: "",
+        },
+
+
+        // ====================================================================
+        // WARRANTY NUMBER
+        // ====================================================================
+
+        warrantyNumber: {
+            type: String,
+            trim: true,
+            maxlength: 100,
+            default: "",
+        },
+
+
+        // ====================================================================
+        // DATES
+        // ====================================================================
+
+        startDate: {
+            type: Date,
+            required: [
+                true,
+                "Warranty start date is required",
+            ],
+        },
+
+        expiryDate: {
+            type: Date,
+            required: [
+                true,
+                "Warranty expiry date is required",
+            ],
+        },
+
+
+        // ====================================================================
+        // NOTES
+        // ====================================================================
+
+        notes: {
+            type: String,
+            trim: true,
+            maxlength: 1000,
+            default: "",
+        },
+
+
+        // ====================================================================
+        // OWNER
+        // ====================================================================
+        //
+        // IMPORTANT:
+        // Existing EverKeep architecture uses `owner`.
+        // Keep it unchanged.
+        //
+        // ====================================================================
+
+        owner: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+            required: [
+                true,
+                "Warranty owner is required",
+            ],
+            index: true,
+        },
+
+
+        // ====================================================================
+        // FAMILY
+        // ====================================================================
+        //
+        // null:
+        //     Personal warranty
+        //
+        // Family ID:
+        //     Warranty is associated with a family workspace
+        //
+        // ====================================================================
+
+        family: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Family",
+            default: null,
+            index: true,
+        },
+
+
+        // ====================================================================
+        // FAMILY SHARING
+        // ====================================================================
+
+        sharing: {
+            type: warrantySharingSchema,
+
+            default: () => ({
+                shared: false,
+                members: [],
+            }),
+        },
+    },
+
+    {
+        timestamps: true,
+    }
+);
+
+
+// ============================================================================
+// INDEXES
+// ============================================================================
+
+// Owner + expiry
+warrantySchema.index({
+    owner: 1,
+    expiryDate: 1,
+});
+
+
+// Family + expiry
+warrantySchema.index({
+    family: 1,
+    expiryDate: 1,
+});
+
+
+// Shared member lookup
+warrantySchema.index({
+    "sharing.members.user": 1,
+});
+
+
+// ============================================================================
+// WARRANTY DATE VALIDATION
+// ============================================================================
+
+warrantySchema.pre(
+    "validate",
+    function () {
+
+        if (
+            this.startDate &&
+            this.expiryDate &&
+            this.expiryDate < this.startDate
+        ) {
+
+            throw new Error(
+                "Warranty expiry date cannot be before start date."
+            );
+        }
+    }
+);
+
+
+// ============================================================================
+// MODEL
+// ============================================================================
+
+const Warranty =
+    mongoose.model(
+        "Warranty",
+        warrantySchema
+    );
+
+
+export default Warranty;
+
+
+========== server/src/models/subscription.model.js ==========
+
+import mongoose from "mongoose";
+
+// ============================================================================
+// SUBSCRIPTION MEMBER ACCESS SCHEMA
+// ============================================================================
+
+const subscriptionMemberAccessSchema = new mongoose.Schema(
+    {
+        // =================================================================
+        // FAMILY MEMBER
+        // =================================================================
+
+        user: {
+            type: mongoose.Schema.Types.ObjectId,
+
+            ref: "User",
+
+            required: true,
+        },
+
+        // =================================================================
+        // ACCESS LEVEL
+        // =================================================================
+
+        access: {
+            type: String,
+
+            enum: ["View", "Edit"],
+
+            default: "View",
+        },
+
+        // =================================================================
+        // SHARED DATE
+        // =================================================================
+
+        sharedAt: {
+            type: Date,
+
+            default: Date.now,
+        },
+    },
+
+    {
+        _id: false,
+    },
+);
+
+// ============================================================================
+// SUBSCRIPTION SHARING SCHEMA
+// ============================================================================
+
+const subscriptionSharingSchema = new mongoose.Schema(
+    {
+        // =================================================================
+        // SHARING STATUS
+        // =================================================================
+
+        shared: {
+            type: Boolean,
+
+            default: false,
+        },
+
+        // =================================================================
+        // FAMILY MEMBERS
+        // =================================================================
+
+        members: {
+            type: [subscriptionMemberAccessSchema],
+
+            default: [],
+        },
+    },
+
+    {
+        _id: false,
+    },
+);
+
+// ============================================================================
+// SUBSCRIPTION SCHEMA
+// ============================================================================
+
+const subscriptionSchema = new mongoose.Schema(
+    {
+        // =================================================================
+        // BASIC INFORMATION
+        // =================================================================
+
+        name: {
+            type: String,
+
+            required: [true, "Subscription name is required."],
+
+            trim: true,
+
+            minlength: [2, "Subscription name must be at least 2 characters."],
+
+            maxlength: [100, "Subscription name cannot exceed 100 characters."],
+        },
+
+        provider: {
+            type: String,
+
+            required: [true, "Provider is required."],
+
+            trim: true,
+
+            maxlength: [100, "Provider cannot exceed 100 characters."],
+        },
+
+        // =================================================================
+        // PLAN
+        // =================================================================
+
+        plan: {
+            type: String,
+
+            trim: true,
+
+            maxlength: 100,
+
+            default: "",
+        },
+
+        // =================================================================
+        // CATEGORY
+        // =================================================================
+
+        category: {
+            type: String,
+
+            enum: [
+                "streaming",
+                "software",
+                "cloud",
+                "gaming",
+                "music",
+                "education",
+                "fitness",
+                "news",
+                "shopping",
+                "utilities",
+                "other",
+            ],
+
+            default: "other",
+        },
+
+        // =================================================================
+        // BILLING
+        // =================================================================
+
+        amount: {
+            type: Number,
+
+            required: [true, "Subscription amount is required."],
+
+            min: [0, "Subscription amount cannot be negative."],
+        },
+
+        currency: {
+            type: String,
+
+            trim: true,
+
+            uppercase: true,
+
+            default: "INR",
+
+            maxlength: 3,
+        },
+
+        billingCycle: {
+            type: String,
+
+            enum: [
+                "weekly",
+                "monthly",
+                "quarterly",
+                "half-yearly",
+                "yearly",
+                "custom",
+            ],
+
+            default: "monthly",
+        },
+
+        // =================================================================
+        // DATES
+        // =================================================================
+
+        startDate: {
+            type: Date,
+
+            required: [true, "Start date is required."],
+        },
+
+        nextBillingDate: {
+            type: Date,
+
+            required: [true, "Next billing date is required."],
+        },
+
+        // =================================================================
+        // AUTO RENEWAL
+        // =================================================================
+
+        autoRenew: {
+            type: Boolean,
+
+            default: true,
+        },
+
+        // =================================================================
+        // STATUS
+        // =================================================================
+
+        status: {
+            type: String,
+
+            enum: ["active", "paused", "cancelled", "expired"],
+
+            default: "active",
+        },
+
+        // =================================================================
+        // LINKED ASSET
+        // =================================================================
+
+        asset: {
+            type: mongoose.Schema.Types.ObjectId,
+
+            ref: "Asset",
+
+            default: null,
+        },
+
+        // =================================================================
+        // PAYMENT INFORMATION
+        // =================================================================
+
+        paymentMethod: {
+            type: String,
+
+            trim: true,
+
+            maxlength: 100,
+
+            default: "",
+        },
+
+        // =================================================================
+        // NOTES
+        // =================================================================
+
+        notes: {
+            type: String,
+
+            trim: true,
+
+            maxlength: [1000, "Notes cannot exceed 1000 characters."],
+
+            default: "",
+        },
+
+        // =================================================================
+        // REMINDER
+        // =================================================================
+
+        reminderDays: {
+            type: Number,
+
+            min: 0,
+
+            max: 365,
+
+            default: 3,
+        },
+
+        // =================================================================
+        // OWNER / USER
+        // =================================================================
+        //
+        // IMPORTANT:
+        //
+        // Existing EverKeep code already uses `user`.
+        // We intentionally keep this field instead of renaming it to
+        // `owner`.
+        //
+        // =================================================================
+
+        user: {
+            type: mongoose.Schema.Types.ObjectId,
+
+            ref: "User",
+
+            required: [true, "Subscription user is required."],
+
+            index: true,
+        },
+
+        // =================================================================
+        // FAMILY
+        // =================================================================
+        //
+        // null:
+        //     Personal subscription
+        //
+        // Family ID:
+        //     Subscription belongs to a Family workspace
+        //
+        // =================================================================
+
+        family: {
+            type: mongoose.Schema.Types.ObjectId,
+
+            ref: "Family",
+
+            default: null,
+
+            index: true,
+        },
+
+        // =================================================================
+        // FAMILY SHARING
+        // =================================================================
+
+        sharing: {
+            type: subscriptionSharingSchema,
+
+            default: () => ({
+                shared: false,
+
+                members: [],
+            }),
+        },
+    },
+
+    {
+        timestamps: true,
+    },
+);
+
+// ============================================================================
+// INDEXES
+// ============================================================================
+
+// User + billing date
+subscriptionSchema.index({
+    user: 1,
+    nextBillingDate: 1,
+});
+
+// User + status
+subscriptionSchema.index({
+    user: 1,
+    status: 1,
+});
+
+// User + category
+subscriptionSchema.index({
+    user: 1,
+    category: 1,
+});
+
+// Family + billing date
+subscriptionSchema.index({
+    family: 1,
+    nextBillingDate: 1,
+});
+
+// Family + status
+subscriptionSchema.index({
+    family: 1,
+    status: 1,
+});
+
+// Shared member lookup
+subscriptionSchema.index({
+    "sharing.members.user": 1,
+});
+
+// ============================================================================
+// MODEL
+// ============================================================================
+
+const Subscription = mongoose.model("Subscription", subscriptionSchema);
+
+export default Subscription;
+
+
+========== server/src/middleware/auth.middleware.js ==========
+
+import jwt from "jsonwebtoken";
+import mongoose from "mongoose";
+
+import User from "../models/user.model.js";
+
+
+// ============================================================================
+// AUTHENTICATION MIDDLEWARE
+// ============================================================================
+//
+// Responsibilities:
+// - Read JWT from Authorization header
+// - Verify JWT
+// - Validate authenticated user
+// - Attach safe user data to req.user
+// - Allow protected routes to continue
+//
+// Expected header:
+//
+// Authorization: Bearer <token>
+//
+// ============================================================================
+
+const authMiddleware = async (req, res, next) => {
+    try {
+
+        // =====================================================================
+        // 1. READ AUTHORIZATION HEADER
+        // =====================================================================
+
+        const authorization =
+            req.headers.authorization?.trim();
+
+
+        if (!authorization) {
+            return res.status(401).json({
+                success: false,
+                message: "Authentication required.",
+            });
+        }
+
+
+        // =====================================================================
+        // 2. VALIDATE BEARER TOKEN FORMAT
+        // =====================================================================
+
+        const [scheme, token] =
+            authorization.split(/\s+/);
+
+
+        if (
+            scheme?.toLowerCase() !== "bearer" ||
+            !token
+        ) {
+            return res.status(401).json({
+                success: false,
+                message:
+                    "Invalid authentication format. Use Bearer <token>.",
+            });
+        }
+
+
+        // =====================================================================
+        // 3. CHECK JWT SECRET CONFIGURATION
+        // =====================================================================
+
+        if (!process.env.JWT_SECRET) {
+
+            console.error(
+                "JWT_SECRET is not configured."
+            );
+
+            return res.status(500).json({
+                success: false,
+                message:
+                    "Authentication service is not configured.",
+            });
+        }
+
+
+        // =====================================================================
+        // 4. VERIFY JWT
+        // =====================================================================
+
+        const decoded =
+            jwt.verify(
+                token,
+                process.env.JWT_SECRET
+            );
+
+
+        // =====================================================================
+        // 5. VALIDATE JWT PAYLOAD
+        // =====================================================================
+
+        const userId =
+            decoded?.id ||
+            decoded?._id ||
+            decoded?.userId;
+
+
+        if (
+            !userId ||
+            !mongoose.Types.ObjectId.isValid(userId)
+        ) {
+            return res.status(401).json({
+                success: false,
+                message:
+                    "Invalid authentication token.",
+            });
+        }
+
+
+        // =====================================================================
+        // 6. FIND AUTHENTICATED USER
+        // =====================================================================
+
+        const user =
+            await User
+                .findById(userId)
+                .select("-password");
+
+
+        if (!user) {
+            return res.status(401).json({
+                success: false,
+                message:
+                    "User associated with this token no longer exists.",
+            });
+        }
+
+
+        // =====================================================================
+        // 7. CHECK ACCOUNT STATUS
+        // =====================================================================
+
+        if (user.isActive === false) {
+            return res.status(403).json({
+                success: false,
+                message:
+                    "Your account is inactive.",
+            });
+        }
+
+
+        // =====================================================================
+        // 8. ATTACH AUTHENTICATED USER
+        // =====================================================================
+
+        req.user = user;
+
+
+        // =====================================================================
+        // 9. CONTINUE REQUEST
+        // =====================================================================
+
+        return next();
+
+    } catch (error) {
+
+        // =====================================================================
+        // JWT EXPIRED
+        // =====================================================================
+
+        if (
+            error?.name === "TokenExpiredError"
+        ) {
+            return res.status(401).json({
+                success: false,
+                message:
+                    "Authentication token has expired.",
+            });
+        }
+
+
+        // =====================================================================
+        // JWT INVALID
+        // =====================================================================
+
+        if (
+            error?.name === "JsonWebTokenError"
+        ) {
+            return res.status(401).json({
+                success: false,
+                message:
+                    "Invalid authentication token.",
+            });
+        }
+
+
+        // =====================================================================
+        // JWT NOT ACTIVE
+        // =====================================================================
+
+        if (
+            error?.name === "NotBeforeError"
+        ) {
+            return res.status(401).json({
+                success: false,
+                message:
+                    "Authentication token is not active yet.",
+            });
+        }
+
+
+        // =====================================================================
+        // DATABASE / UNEXPECTED ERROR
+        // =====================================================================
+
+        console.error(
+            "Authentication middleware error:",
+            error
+        );
+
+        return res.status(500).json({
+            success: false,
+            message:
+                "Unable to authenticate request.",
+        });
+    }
+};
+
+
+export default authMiddleware;
+
+
+========== server/src/services/aiContext.js ==========
+
+import Asset from "../models/Asset.js";
+import Warranty from "../models/Warranty.js";
+import Subscription from "../models/subscription.model.js";
+import Document from "../models/Document.js";
+import CalendarEvent from "../models/CalendarEvent.js";
+
+// ============================================================================
+// HELPERS
+// ============================================================================
+
+const formatDate = (date) => {
+    if (!date) {
+        return null;
+    }
+
+    return date instanceof Date ? date.toISOString() : date;
+};
+
+// ============================================================================
+// ASSET CONTEXT
+// ============================================================================
+
+const getAssetContext = async (userId) => {
+    const assets = await Asset.find({
+        owner: userId,
+    })
+        .select(
+            "name category brand model purchaseDate purchasePrice warrantyExpiry serialNumber notes reminderEnabled status",
+        )
+        .sort({
+            createdAt: -1,
+        })
+        .lean();
+
+    return assets.map((asset) => ({
+        name: asset.name || "",
+        category: asset.category || "",
+        brand: asset.brand || "",
+        model: asset.model || "",
+
+        purchaseDate: formatDate(asset.purchaseDate),
+
+        purchasePrice: asset.purchasePrice ?? 0,
+
+        warrantyExpiry: formatDate(asset.warrantyExpiry),
+
+        serialNumber: asset.serialNumber || "",
+
+        notes: asset.notes || "",
+
+        reminderEnabled: asset.reminderEnabled ?? true,
+
+        status: asset.status || "Active",
+    }));
+};
+
+// ============================================================================
+// WARRANTY CONTEXT
+// ============================================================================
+
+const getWarrantyContext = async (userId) => {
+    const warranties = await Warranty.find({
+        owner: userId,
+    })
+        .populate("asset", "name brand model")
+        .select("title provider warrantyNumber startDate expiryDate notes asset")
+        .sort({
+            expiryDate: 1,
+        })
+        .lean();
+
+    return warranties.map((warranty) => ({
+        title: warranty.title || "",
+
+        provider: warranty.provider || "",
+
+        warrantyNumber: warranty.warrantyNumber || "",
+
+        startDate: formatDate(warranty.startDate),
+
+        expiryDate: formatDate(warranty.expiryDate),
+
+        notes: warranty.notes || "",
+
+        asset: warranty.asset
+            ? {
+                name: warranty.asset.name || "",
+
+                brand: warranty.asset.brand || "",
+
+                model: warranty.asset.model || "",
+            }
+            : null,
+    }));
+};
+
+// ============================================================================
+// SUBSCRIPTION CONTEXT
+// ============================================================================
+
+const getSubscriptionContext = async (userId) => {
+    const subscriptions = await Subscription.find({
+        user: userId,
+    })
+        .populate("asset", "name brand model category")
+        .select(
+            "name provider plan category amount currency billingCycle startDate nextBillingDate autoRenew status paymentMethod notes reminderDays asset",
+        )
+        .sort({
+            nextBillingDate: 1,
+        })
+        .lean();
+
+    return subscriptions.map((subscription) => ({
+        name: subscription.name || "",
+
+        provider: subscription.provider || "",
+
+        plan: subscription.plan || "",
+
+        category: subscription.category || "",
+
+        amount: subscription.amount ?? 0,
+
+        currency: subscription.currency || "",
+
+        billingCycle: subscription.billingCycle || "",
+
+        startDate: formatDate(subscription.startDate),
+
+        nextBillingDate: formatDate(subscription.nextBillingDate),
+
+        autoRenew: subscription.autoRenew ?? false,
+
+        status: subscription.status || "",
+
+        paymentMethod: subscription.paymentMethod || "",
+
+        notes: subscription.notes || "",
+
+        reminderDays: subscription.reminderDays ?? 0,
+
+        asset: subscription.asset
+            ? {
+                name: subscription.asset.name || "",
+
+                brand: subscription.asset.brand || "",
+
+                model: subscription.asset.model || "",
+
+                category: subscription.asset.category || "",
+            }
+            : null,
+    }));
+};
+
+// ============================================================================
+// DOCUMENT CONTEXT
+// ============================================================================
+
+const getDocumentContext = async (userId) => {
+    const documents = await Document.find({
+        owner: userId,
+    })
+        .populate("asset", "name brand model category")
+        .select(
+            "name originalName fileType fileSize category asset createdAt updatedAt",
+        )
+        .sort({
+            createdAt: -1,
+        })
+        .lean();
+
+    return documents.map((document) => ({
+        name: document.name || "",
+
+        originalName: document.originalName || "",
+
+        fileType: document.fileType || "",
+
+        fileSize: document.fileSize ?? 0,
+
+        category: document.category || "Other",
+
+        asset: document.asset
+            ? {
+                name: document.asset.name || "",
+
+                brand: document.asset.brand || "",
+
+                model: document.asset.model || "",
+
+                category: document.asset.category || "",
+            }
+            : null,
+
+        createdAt: formatDate(document.createdAt),
+
+        updatedAt: formatDate(document.updatedAt),
+    }));
+};
+
+// ============================================================================
+// CALENDAR CONTEXT
+// ============================================================================
+
+const getCalendarContext = async (userId) => {
+    const events = await CalendarEvent.find({
+        owner: userId,
+    })
+        .populate("asset", "name brand model category")
+        .populate("warranty", "title provider expiryDate")
+        .populate("subscription", "name provider nextBillingDate")
+        .select(
+            "title description type startDate endDate allDay priority status asset warranty subscription reminder location notes",
+        )
+        .sort({
+            startDate: 1,
+        })
+        .lean();
+
+    return events.map((event) => ({
+        title: event.title || "",
+
+        description: event.description || "",
+
+        type: event.type || "custom",
+
+        startDate: formatDate(event.startDate),
+
+        endDate: formatDate(event.endDate),
+
+        allDay: event.allDay ?? false,
+
+        priority: event.priority || "medium",
+
+        status: event.status || "upcoming",
+
+        asset: event.asset
+            ? {
+                name: event.asset.name || "",
+
+                brand: event.asset.brand || "",
+
+                model: event.asset.model || "",
+
+                category: event.asset.category || "",
+            }
+            : null,
+
+        warranty: event.warranty
+            ? {
+                title: event.warranty.title || "",
+
+                provider: event.warranty.provider || "",
+
+                expiryDate: formatDate(event.warranty.expiryDate),
+            }
+            : null,
+
+        subscription: event.subscription
+            ? {
+                name: event.subscription.name || "",
+
+                provider: event.subscription.provider || "",
+
+                nextBillingDate: formatDate(event.subscription.nextBillingDate),
+            }
+            : null,
+
+        reminder: event.reminder
+            ? {
+                enabled: event.reminder.enabled ?? false,
+
+                minutesBefore: event.reminder.minutesBefore ?? 0,
+            }
+            : {
+                enabled: false,
+                minutesBefore: 0,
+            },
+
+        location: event.location || "",
+
+        notes: event.notes || "",
+    }));
+};
+
+// ============================================================================
+// BUILD EVERKEEP AI CONTEXT
+// ============================================================================
+//
+// Only authenticated user's own records are loaded.
+//
+// Internal database identifiers, ownership fields, sharing member IDs,
+// URLs and storage implementation details are intentionally excluded.
+//
+// ============================================================================
+
+export const buildAIContext = async (userId) => {
+    if (!userId) {
+        const error = new Error("User authentication is required.");
+
+        error.statusCode = 401;
+
+        throw error;
+    }
+
+    const [assets, warranties, subscriptions, documents, calendarEvents] =
+        await Promise.all([
+            getAssetContext(userId),
+            getWarrantyContext(userId),
+            getSubscriptionContext(userId),
+            getDocumentContext(userId),
+            getCalendarContext(userId),
+        ]);
+
+    return {
+        assets,
+        warranties,
+        subscriptions,
+        documents,
+        calendarEvents,
+    };
+};
+
+
+========== server/src/controllers/asset.controller.js ==========
+
+import assetService from "../services/asset.service.js";
+
+// ============================================================================
+// ASSET CONTROLLER
+// ============================================================================
+//
+// Flow:
+//
+// authMiddleware
+//      ↓
+// asset.controller.js
+//      ↓
+// asset.service.js
+//      ↓
+// Asset.js
+//      ↓
+// MongoDB
+//
+// Controller:
+// - HTTP request handle karta hai
+// - authenticated user identify karta hai
+// - service call karta hai
+// - response return karta hai
+//
+// Business logic service mein rahega.
+//
+// ============================================================================
+
+// ============================================================================
+// GET AUTHENTICATED USER ID
+// ============================================================================
+
+const getUserId = (req) => {
+    return req.user?._id || req.user?.id || null;
+};
+
+// ============================================================================
+// ERROR RESPONSE HELPER
+// ============================================================================
+
+const handleError = (res, error, fallbackMessage) => {
+    console.error("Asset controller error:", error);
+
+    return res.status(error?.statusCode || 500).json({
+        success: false,
+
+        message: error?.message || fallbackMessage,
+    });
+};
+
+// ============================================================================
+// CREATE ASSET
+// POST /api/assets
+// ============================================================================
+
+export const createAsset = async (req, res) => {
+    try {
+        const userId = getUserId(req);
+
+        if (!userId) {
+            return res.status(401).json({
+                success: false,
+
+                message: "Authentication required.",
+            });
+        }
+
+        const asset = await assetService.createAsset(
+            userId,
+
+            req.body,
+        );
+
+        return res.status(201).json({
+            success: true,
+
+            message: "Asset created successfully.",
+
+            data: asset,
+        });
+    } catch (error) {
+        return handleError(
+            res,
+
+            error,
+
+            "Unable to create asset.",
+        );
+    }
+};
+
+// ============================================================================
+// GET ALL ASSETS
+// GET /api/assets
+// ============================================================================
+
+export const getAllAssets = async (req, res) => {
+    try {
+        const userId = getUserId(req);
+
+        if (!userId) {
+            return res.status(401).json({
+                success: false,
+
+                message: "Authentication required.",
+            });
+        }
+
+        const result = await assetService.getAllAssets(
+            userId,
+
+            req.query,
+        );
+
+        return res.status(200).json({
+            success: true,
+
+            count: result.assets.length,
+
+            data: result.assets,
+
+            pagination: result.pagination,
+        });
+    } catch (error) {
+        return handleError(
+            res,
+
+            error,
+
+            "Unable to load assets.",
+        );
+    }
+};
+
+// ============================================================================
+// GET SINGLE ASSET
+// GET /api/assets/:id
+// ============================================================================
+
+export const getAssetById = async (req, res) => {
+    try {
+        const userId = getUserId(req);
+
+        if (!userId) {
+            return res.status(401).json({
+                success: false,
+
+                message: "Authentication required.",
+            });
+        }
+
+        const asset = await assetService.getAssetById(
+            userId,
+
+            req.params.id,
+        );
+
+        return res.status(200).json({
+            success: true,
+
+            data: asset,
+        });
+    } catch (error) {
+        return handleError(
+            res,
+
+            error,
+
+            "Unable to load asset.",
+        );
+    }
+};
+
+// ============================================================================
+// UPDATE ASSET
+// PUT /api/assets/:id
+// ============================================================================
+
+export const updateAsset = async (req, res) => {
+    try {
+        const userId = getUserId(req);
+
+        if (!userId) {
+            return res.status(401).json({
+                success: false,
+
+                message: "Authentication required.",
+            });
+        }
+
+        const asset = await assetService.updateAsset(
+            userId,
+
+            req.params.id,
+
+            req.body,
+        );
+
+        return res.status(200).json({
+            success: true,
+
+            message: "Asset updated successfully.",
+
+            data: asset,
+        });
+    } catch (error) {
+        return handleError(
+            res,
+
+            error,
+
+            "Unable to update asset.",
+        );
+    }
+};
+
+// ============================================================================
+// DELETE ASSET
+// DELETE /api/assets/:id
+// ============================================================================
+//
+// Only actual owner can delete.
+//
+// ============================================================================
+
+export const deleteAsset = async (req, res) => {
+    try {
+        const userId = getUserId(req);
+
+        if (!userId) {
+            return res.status(401).json({
+                success: false,
+
+                message: "Authentication required.",
+            });
+        }
+
+        const result = await assetService.deleteAsset(
+            userId,
+
+            req.params.id,
+        );
+
+        return res.status(200).json({
+            success: true,
+
+            message: result.message,
+
+            data: {
+                deletedAssetId: result.deletedAssetId,
+            },
+        });
+    } catch (error) {
+        return handleError(
+            res,
+
+            error,
+
+            "Unable to delete asset.",
+        );
+    }
+};
+
+// ============================================================================
+// SHARE ASSET
+// POST /api/assets/:id/share
+// ============================================================================
+
+export const shareAsset = async (req, res) => {
+    try {
+        const userId = getUserId(req);
+
+        if (!userId) {
+            return res.status(401).json({
+                success: false,
+
+                message: "Authentication required.",
+            });
+        }
+
+        const asset = await assetService.shareAsset(
+            userId,
+
+            req.params.id,
+
+            req.body,
+        );
+
+        return res.status(200).json({
+            success: true,
+
+            message: "Asset shared successfully.",
+
+            data: asset,
+        });
+    } catch (error) {
+        return handleError(
+            res,
+
+            error,
+
+            "Unable to share asset.",
+        );
+    }
+};
+
+// ============================================================================
+// UNSHARE ASSET
+// DELETE /api/assets/:id/share
+// ============================================================================
+
+export const unshareAsset = async (req, res) => {
+    try {
+        const userId = getUserId(req);
+
+        if (!userId) {
+            return res.status(401).json({
+                success: false,
+
+                message: "Authentication required.",
+            });
+        }
+
+        const asset = await assetService.unshareAsset(
+            userId,
+
+            req.params.id,
+
+            req.body || {},
+        );
+
+        return res.status(200).json({
+            success: true,
+
+            message: "Asset sharing updated successfully.",
+
+            data: asset,
+        });
+    } catch (error) {
+        return handleError(
+            res,
+
+            error,
+
+            "Unable to update asset sharing.",
+        );
+    }
+};
+
+// ============================================================================
+// UPDATE SHARING PERMISSION
+// PATCH /api/assets/:id/share/:memberId
+// ============================================================================
+
+export const updateAssetSharingPermission = async (req, res) => {
+    try {
+        const userId = getUserId(req);
+
+        if (!userId) {
+            return res.status(401).json({
+                success: false,
+
+                message: "Authentication required.",
+            });
+        }
+
+        const asset = await assetService.updateAssetSharingPermission(
+            userId,
+
+            req.params.id,
+
+            req.params.memberId,
+
+            req.body?.access,
+        );
+
+        return res.status(200).json({
+            success: true,
+
+            message: "Asset sharing permission updated successfully.",
+
+            data: asset,
+        });
+    } catch (error) {
+        return handleError(
+            res,
+
+            error,
+
+            "Unable to update asset sharing permission.",
+        );
+    }
+};
+
+// ============================================================================
+// REMOVE MEMBER ACCESS
+// DELETE /api/assets/:id/share/:memberId
+// ============================================================================
+
+export const removeAssetMemberAccess = async (req, res) => {
+    try {
+        const userId = getUserId(req);
+
+        if (!userId) {
+            return res.status(401).json({
+                success: false,
+
+                message: "Authentication required.",
+            });
+        }
+
+        const asset = await assetService.removeAssetMemberAccess(
+            userId,
+
+            req.params.id,
+
+            req.params.memberId,
+        );
+
+        return res.status(200).json({
+            success: true,
+
+            message: "Family member access removed successfully.",
+
+            data: asset,
+        });
+    } catch (error) {
+        return handleError(
+            res,
+
+            error,
+
+            "Unable to remove family member access.",
+        );
+    }
+};
+
+// ============================================================================
+// GET ASSET ACCESS DETAILS
+// GET /api/assets/:id/access
+// ============================================================================
+
+export const getAssetAccessDetails = async (req, res) => {
+    try {
+        const userId = getUserId(req);
+
+        if (!userId) {
+            return res.status(401).json({
+                success: false,
+
+                message: "Authentication required.",
+            });
+        }
+
+        const access = await assetService.getAssetAccessDetails(
+            userId,
+
+            req.params.id,
+        );
+
+        return res.status(200).json({
+            success: true,
+
+            data: access,
+        });
+    } catch (error) {
+        return handleError(
+            res,
+
+            error,
+
+            "Unable to load asset access details.",
+        );
+    }
+};
+
+// ============================================================================
+// GET ASSET STATISTICS
+// GET /api/assets/stats
+// ============================================================================
+
+export const getAssetStats = async (req, res) => {
+    try {
+        const userId = getUserId(req);
+
+        if (!userId) {
+            return res.status(401).json({
+                success: false,
+
+                message: "Authentication required.",
+            });
+        }
+
+        const stats = await assetService.getAssetStats(userId);
+
+        return res.status(200).json({
+            success: true,
+
+            data: stats,
+        });
+    } catch (error) {
+        return handleError(
+            res,
+
+            error,
+
+            "Unable to load asset statistics.",
+        );
+    }
+};
+
+// ============================================================================
+// UPCOMING WARRANTY ASSETS
+// GET /api/assets/warranty/upcoming
+// ============================================================================
+
+export const getUpcomingWarrantyAssets = async (req, res) => {
+    try {
+        const userId = getUserId(req);
+
+        if (!userId) {
+            return res.status(401).json({
+                success: false,
+
+                message: "Authentication required.",
+            });
+        }
+
+        const assets = await assetService.getUpcomingWarrantyAssets(
+            userId,
+
+            req.query.days,
+        );
+
+        return res.status(200).json({
+            success: true,
+
+            count: assets.length,
+
+            data: assets,
+        });
+    } catch (error) {
+        return handleError(
+            res,
+
+            error,
+
+            "Unable to load upcoming warranty assets.",
+        );
+    }
+};
+
+// ============================================================================
+// FAMILY SHARED ASSETS
+// GET /api/assets/family/shared
+// ============================================================================
+
+export const getFamilySharedAssets = async (req, res) => {
+    try {
+        const userId = getUserId(req);
+
+        if (!userId) {
+            return res.status(401).json({
+                success: false,
+
+                message: "Authentication required.",
+            });
+        }
+
+        const assets = await assetService.getFamilySharedAssets(userId);
+
+        return res.status(200).json({
+            success: true,
+
+            count: assets.length,
+
+            data: assets,
+        });
+    } catch (error) {
+        return handleError(
+            res,
+
+            error,
+
+            "Unable to load family shared assets.",
+        );
+    }
+};
+
+// ============================================================================
+// UPDATE EXPIRED ASSETS
+// POST /api/assets/system/update-expired
+// ============================================================================
+
+export const updateExpiredAssets = async (req, res) => {
+    try {
+        const result = await assetService.updateExpiredAssets();
+
+        return res.status(200).json({
+            success: true,
+
+            message: "Expired assets updated successfully.",
+
+            data: result,
+        });
+    } catch (error) {
+        return handleError(
+            res,
+
+            error,
+
+            "Unable to update expired assets.",
+        );
+    }
+};
+
+// ============================================================================
+// DEFAULT EXPORT
+// ============================================================================
+
+export default {
+    createAsset,
+
+    getAllAssets,
+
+    getAssetById,
+
+    updateAsset,
+
+    deleteAsset,
+
+    shareAsset,
+
+    unshareAsset,
+
+    updateAssetSharingPermission,
+
+    removeAssetMemberAccess,
+
+    getAssetAccessDetails,
+
+    getAssetStats,
+
+    getUpcomingWarrantyAssets,
+
+    getFamilySharedAssets,
+
+    updateExpiredAssets,
+};
+
+
+========== server/src/controllers/warranty.controller.js ==========
+
+import mongoose from "mongoose";
+
+import {
+    createWarranty,
+    getWarranties,
+    getWarrantyById,
+    updateWarranty,
+    deleteWarranty,
+    getUpcomingWarranties,
+    getExpiredWarranties,
+    getWarrantyStats,
+    shareWarranty,
+    unshareWarranty,
+    updateWarrantySharingPermission,
+    removeWarrantyMemberAccess,
+    getFamilySharedWarranties,
+    getWarrantyAccessDetails,
+} from "../services/warranty.service.js";
+
+// ============================================================================
+// WARRANTY CONTROLLER
+// ============================================================================
+//
+// Controller responsibilities:
+//
+// - Request se data lena
+// - Authentication verify karna
+// - Basic parameter validation
+// - Warranty service ko call karna
+// - Consistent API response dena
+//
+// Business logic → warranty.service.js
+// Database logic → Warranty.js
+//
+// ============================================================================
+
+// ============================================================================
+// GET AUTHENTICATED USER ID
+// ============================================================================
+
+const getUserId = (req) => {
+    return req.user?._id || req.user?.id || null;
+};
+
+// ============================================================================
+// AUTHENTICATION CHECK
+// ============================================================================
+
+const requireUserId = (req) => {
+    const userId = getUserId(req);
+
+    if (!userId) {
+        const error = new Error("Authentication required.");
+
+        error.statusCode = 401;
+
+        throw error;
+    }
+
+    return userId;
+};
+
+// ============================================================================
+// VALIDATE MONGODB OBJECT ID
+// ============================================================================
+
+const validateObjectId = (id, fieldName = "ID") => {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+        const error = new Error(`Invalid ${fieldName}.`);
+
+        error.statusCode = 400;
+
+        throw error;
+    }
+};
+
+// ============================================================================
+// ERROR RESPONSE HELPER
+// ============================================================================
+
+const handleError = (res, error, fallbackMessage) => {
+    console.error("Warranty controller error:", error);
+
+    return res.status(error?.statusCode || 500).json({
+        success: false,
+
+        message: error?.message || fallbackMessage,
+    });
+};
+
+// ============================================================================
+// CREATE WARRANTY
+// POST /api/warranties
+// ============================================================================
+
+export const createNewWarranty = async (req, res) => {
+    try {
+        const userId = requireUserId(req);
+
+        const warranty = await createWarranty(req.body, userId);
+
+        return res.status(201).json({
+            success: true,
+
+            message: "Warranty created successfully.",
+
+            data: warranty,
+        });
+    } catch (error) {
+        return handleError(
+            res,
+
+            error,
+
+            "Unable to create warranty.",
+        );
+    }
+};
+
+// ============================================================================
+// GET ALL WARRANTIES
+// GET /api/warranties
+// ============================================================================
+//
+// Query:
+//
+// ?search=iphone
+// ?expiry=active
+// ?expiry=expired
+// ?page=1
+// ?limit=20
+//
+// ============================================================================
+
+export const getAllWarranties = async (req, res) => {
+    try {
+        const userId = requireUserId(req);
+
+        const result = await getWarranties(
+            userId,
+
+            {
+                search: req.query.search,
+
+                expiry: req.query.expiry,
+
+                page: req.query.page,
+
+                limit: req.query.limit,
+            },
+        );
+
+        return res.status(200).json({
+            success: true,
+
+            count: result.warranties.length,
+
+            data: result.warranties,
+
+            pagination: result.pagination,
+        });
+    } catch (error) {
+        return handleError(
+            res,
+
+            error,
+
+            "Unable to load warranties.",
+        );
+    }
+};
+
+// ============================================================================
+// GET SINGLE WARRANTY
+// GET /api/warranties/:id
+// ============================================================================
+
+export const getSingleWarranty = async (req, res) => {
+    try {
+        const userId = requireUserId(req);
+
+        const { id } = req.params;
+
+        validateObjectId(id, "warranty ID");
+
+        const warranty = await getWarrantyById(
+            id,
+
+            userId,
+        );
+
+        return res.status(200).json({
+            success: true,
+
+            data: warranty,
+        });
+    } catch (error) {
+        return handleError(
+            res,
+
+            error,
+
+            "Unable to load warranty.",
+        );
+    }
+};
+
+// ============================================================================
+// UPDATE WARRANTY
+// PUT /api/warranties/:id
+// ============================================================================
+
+export const updateExistingWarranty = async (req, res) => {
+    try {
+        const userId = requireUserId(req);
+
+        const { id } = req.params;
+
+        validateObjectId(id, "warranty ID");
+
+        const warranty = await updateWarranty(
+            id,
+
+            req.body,
+
+            userId,
+        );
+
+        return res.status(200).json({
+            success: true,
+
+            message: "Warranty updated successfully.",
+
+            data: warranty,
+        });
+    } catch (error) {
+        return handleError(
+            res,
+
+            error,
+
+            "Unable to update warranty.",
+        );
+    }
+};
+
+// ============================================================================
+// DELETE WARRANTY
+// DELETE /api/warranties/:id
+// ============================================================================
+
+export const removeWarranty = async (req, res) => {
+    try {
+        const userId = requireUserId(req);
+
+        const { id } = req.params;
+
+        validateObjectId(id, "warranty ID");
+
+        const warranty = await deleteWarranty(
+            id,
+
+            userId,
+        );
+
+        return res.status(200).json({
+            success: true,
+
+            message: "Warranty deleted successfully.",
+
+            data: {
+                deletedWarrantyId: warranty._id,
+            },
+        });
+    } catch (error) {
+        return handleError(
+            res,
+
+            error,
+
+            "Unable to delete warranty.",
+        );
+    }
+};
+
+// ============================================================================
+// UPCOMING WARRANTIES
+// GET /api/warranties/upcoming
+// ============================================================================
+//
+// Example:
+//
+// /api/warranties/upcoming?days=30
+//
+// ============================================================================
+
+export const getUpcomingWarrantyList = async (req, res) => {
+    try {
+        const userId = requireUserId(req);
+
+        const days = req.query.days ?? 30;
+
+        const warranties = await getUpcomingWarranties(
+            userId,
+
+            days,
+        );
+
+        return res.status(200).json({
+            success: true,
+
+            count: warranties.length,
+
+            data: warranties,
+        });
+    } catch (error) {
+        return handleError(
+            res,
+
+            error,
+
+            "Unable to load upcoming warranties.",
+        );
+    }
+};
+
+// ============================================================================
+// EXPIRED WARRANTIES
+// GET /api/warranties/expired
+// ============================================================================
+
+export const getExpiredWarrantyList = async (req, res) => {
+    try {
+        const userId = requireUserId(req);
+
+        const warranties = await getExpiredWarranties(userId);
+
+        return res.status(200).json({
+            success: true,
+
+            count: warranties.length,
+
+            data: warranties,
+        });
+    } catch (error) {
+        return handleError(
+            res,
+
+            error,
+
+            "Unable to load expired warranties.",
+        );
+    }
+};
+
+// ============================================================================
+// WARRANTY STATISTICS
+// GET /api/warranties/stats
+// ============================================================================
+
+export const getWarrantySummary = async (req, res) => {
+    try {
+        const userId = requireUserId(req);
+
+        const stats = await getWarrantyStats(userId);
+
+        return res.status(200).json({
+            success: true,
+
+            data: stats,
+        });
+    } catch (error) {
+        return handleError(
+            res,
+
+            error,
+
+            "Unable to load warranty statistics.",
+        );
+    }
+};
+
+// ============================================================================
+// SHARE WARRANTY
+// POST /api/warranties/:id/share
+// ============================================================================
+//
+// Body:
+//
+// {
+//     "memberIds": [
+//         "FAMILY_MEMBER_ID"
+//     ],
+//
+//     "access": "View"
+// }
+//
+// OR:
+//
+// {
+//     "memberIds": [
+//         "FAMILY_MEMBER_ID"
+//     ],
+//
+//     "access": "Edit"
+// }
+//
+// ============================================================================
+
+export const shareWarrantyWithFamily = async (req, res) => {
+    try {
+        const userId = requireUserId(req);
+
+        const { id } = req.params;
+
+        validateObjectId(id, "warranty ID");
+
+        const warranty = await shareWarranty(
+            id,
+
+            userId,
+
+            req.body,
+        );
+
+        return res.status(200).json({
+            success: true,
+
+            message: "Warranty shared successfully.",
+
+            data: warranty,
+        });
+    } catch (error) {
+        return handleError(
+            res,
+
+            error,
+
+            "Unable to share warranty.",
+        );
+    }
+};
+
+// ============================================================================
+// UNSHARE WARRANTY
+// DELETE /api/warranties/:id/share
+// ============================================================================
+//
+// Body:
+//
+// {
+//     "memberIds": [
+//         "FAMILY_MEMBER_ID"
+//     ]
+// }
+//
+// Empty memberIds:
+//
+// Remove all sharing.
+//
+// ============================================================================
+
+export const unshareWarrantyFromFamily = async (req, res) => {
+    try {
+        const userId = requireUserId(req);
+
+        const { id } = req.params;
+
+        validateObjectId(id, "warranty ID");
+
+        const warranty = await unshareWarranty(
+            id,
+
+            userId,
+
+            req.body || {},
+        );
+
+        return res.status(200).json({
+            success: true,
+
+            message: "Warranty sharing updated successfully.",
+
+            data: warranty,
+        });
+    } catch (error) {
+        return handleError(
+            res,
+
+            error,
+
+            "Unable to update warranty sharing.",
+        );
+    }
+};
+
+// ============================================================================
+// UPDATE MEMBER PERMISSION
+// PATCH /api/warranties/:id/share/:memberId
+// ============================================================================
+//
+// Body:
+//
+// {
+//     "access": "View"
+// }
+//
+// OR:
+//
+// {
+//     "access": "Edit"
+// }
+//
+// ============================================================================
+
+export const updateWarrantyMemberPermission = async (req, res) => {
+    try {
+        const userId = requireUserId(req);
+
+        const { id, memberId } = req.params;
+
+        validateObjectId(id, "warranty ID");
+
+        validateObjectId(memberId, "family member ID");
+
+        const warranty = await updateWarrantySharingPermission(
+            id,
+
+            userId,
+
+            memberId,
+
+            req.body?.access,
+        );
+
+        return res.status(200).json({
+            success: true,
+
+            message: "Warranty member permission updated successfully.",
+
+            data: warranty,
+        });
+    } catch (error) {
+        return handleError(
+            res,
+
+            error,
+
+            "Unable to update warranty member permission.",
+        );
+    }
+};
+
+// ============================================================================
+// REMOVE MEMBER ACCESS
+// DELETE /api/warranties/:id/share/:memberId
+// ============================================================================
+
+export const removeWarrantyMember = async (req, res) => {
+    try {
+        const userId = requireUserId(req);
+
+        const { id, memberId } = req.params;
+
+        validateObjectId(id, "warranty ID");
+
+        validateObjectId(memberId, "family member ID");
+
+        const warranty = await removeWarrantyMemberAccess(
+            id,
+
+            userId,
+
+            memberId,
+        );
+
+        return res.status(200).json({
+            success: true,
+
+            message: "Warranty member access removed successfully.",
+
+            data: warranty,
+        });
+    } catch (error) {
+        return handleError(
+            res,
+
+            error,
+
+            "Unable to remove warranty member access.",
+        );
+    }
+};
+
+// ============================================================================
+// FAMILY SHARED WARRANTIES
+// GET /api/warranties/family/shared
+// ============================================================================
+
+export const getFamilySharedWarrantyList = async (req, res) => {
+    try {
+        const userId = requireUserId(req);
+
+        const warranties = await getFamilySharedWarranties(userId);
+
+        return res.status(200).json({
+            success: true,
+
+            count: warranties.length,
+
+            data: warranties,
+        });
+    } catch (error) {
+        return handleError(
+            res,
+
+            error,
+
+            "Unable to load family shared warranties.",
+        );
+    }
+};
+
+// ============================================================================
+// WARRANTY ACCESS DETAILS
+// GET /api/warranties/:id/access
+// ============================================================================
+
+export const getWarrantyAccess = async (req, res) => {
+    try {
+        const userId = requireUserId(req);
+
+        const { id } = req.params;
+
+        validateObjectId(id, "warranty ID");
+
+        const access = await getWarrantyAccessDetails(
+            id,
+
+            userId,
+        );
+
+        return res.status(200).json({
+            success: true,
+
+            data: access,
+        });
+    } catch (error) {
+        return handleError(
+            res,
+
+            error,
+
+            "Unable to load warranty access details.",
+        );
+    }
+};
+
+// ============================================================================
+// DEFAULT EXPORT
+// ============================================================================
+
+export default {
+    createNewWarranty,
+
+    getAllWarranties,
+
+    getSingleWarranty,
+
+    updateExistingWarranty,
+
+    removeWarranty,
+
+    getUpcomingWarrantyList,
+
+    getExpiredWarrantyList,
+
+    getWarrantySummary,
+
+    shareWarrantyWithFamily,
+
+    unshareWarrantyFromFamily,
+
+    updateWarrantyMemberPermission,
+
+    removeWarrantyMember,
+
+    getFamilySharedWarrantyList,
+
+    getWarrantyAccess,
+};
+
+
+========== server/src/controllers/subscription.controller.js ==========
+
+import mongoose from "mongoose";
+
+import {
+    getSubscriptions,
+    getSubscriptionById,
+    createSubscription,
+    updateSubscription,
+    deleteSubscription,
+    getUpcomingSubscriptions,
+    getSubscriptionStats,
+    getOverdueSubscriptions,
+    shareSubscription,
+    unshareSubscription,
+    updateSubscriptionSharingPermission,
+    removeSubscriptionMemberAccess,
+    getFamilySharedSubscriptions,
+} from "../services/subscription.service.js";
+
+// ============================================================================
+// SUBSCRIPTION CONTROLLER
+// ============================================================================
+//
+// The controller is responsible for:
+// - Reading HTTP request data
+// - Validating request parameters
+// - Calling subscription services
+// - Returning consistent API responses
+// ============================================================================
+
+const getUserId = (req) => {
+    return req.user?._id || req.user?.id || null;
+};
+
+// ============================================================================
+// GET ALL SUBSCRIPTIONS
+// GET /api/subscriptions
+// ============================================================================
+
+export const getAllSubscriptions = async (req, res) => {
+    try {
+        const { search, status, category } = req.query;
+
+        const subscriptions = await getSubscriptions(getUserId(req), {
+            search,
+            status,
+            category,
+        });
+
+        return res.status(200).json({
+            success: true,
+
+            count: subscriptions.length,
+
+            data: subscriptions,
+        });
+    } catch (error) {
+        console.error("Get subscriptions error:", error);
+
+        return res.status(error.statusCode || 500).json({
+            success: false,
+
+            message: error.message || "Unable to load subscriptions.",
+        });
+    }
+};
+
+// ============================================================================
+// GET SINGLE SUBSCRIPTION
+// GET /api/subscriptions/:id
+// ============================================================================
+
+export const getSingleSubscription = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // ----------------------------------------------------------------
+        // Validate MongoDB ID
+        // ----------------------------------------------------------------
+
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({
+                success: false,
+
+                message: "Invalid subscription ID.",
+            });
+        }
+
+        const subscription = await getSubscriptionById(
+            id,
+            getUserId(req),
+        );
+
+        if (!subscription) {
+            return res.status(404).json({
+                success: false,
+
+                message: "Subscription not found.",
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+
+            data: subscription,
+        });
+    } catch (error) {
+        console.error("Get subscription error:", error);
+
+        return res.status(error.statusCode || 500).json({
+            success: false,
+
+            message: error.message || "Unable to load subscription.",
+        });
+    }
+};
+
+// ============================================================================
+// CREATE SUBSCRIPTION
+// POST /api/subscriptions
+// ============================================================================
+
+export const createNewSubscription = async (req, res) => {
+    try {
+        const subscription = await createSubscription(
+            req.body,
+            getUserId(req),
+        );
+
+        return res.status(201).json({
+            success: true,
+
+            message: "Subscription created successfully.",
+
+            data: subscription,
+        });
+    } catch (error) {
+        console.error("Create subscription error:", error);
+
+        return res.status(error.statusCode || 400).json({
+            success: false,
+
+            message: error.message || "Unable to create subscription.",
+        });
+    }
+};
+
+// ============================================================================
+// GET UPCOMING SUBSCRIPTIONS
+// GET /api/subscriptions/upcoming
+// ============================================================================
+
+export const getUpcomingSubscriptionRenewals = async (req, res) => {
+    try {
+        const subscriptions = await getUpcomingSubscriptions(
+            getUserId(req),
+            req.query.days || 30,
+        );
+
+        return res.status(200).json({
+            success: true,
+            count: subscriptions.length,
+            data: subscriptions,
+        });
+    } catch (error) {
+        console.error("Get upcoming subscriptions error:", error);
+
+        return res.status(error.statusCode || 500).json({
+            success: false,
+            message:
+                error.message || "Unable to load upcoming subscriptions.",
+        });
+    }
+};
+
+// ============================================================================
+// GET SUBSCRIPTION STATS
+// GET /api/subscriptions/stats
+// ============================================================================
+
+export const getSubscriptionSummary = async (req, res) => {
+    try {
+        const stats = await getSubscriptionStats(getUserId(req));
+
+        return res.status(200).json({
+            success: true,
+            data: stats,
+        });
+    } catch (error) {
+        console.error("Get subscription stats error:", error);
+
+        return res.status(error.statusCode || 500).json({
+            success: false,
+            message:
+                error.message || "Unable to load subscription stats.",
+        });
+    }
+};
+
+// ============================================================================
+// GET OVERDUE SUBSCRIPTIONS
+// GET /api/subscriptions/overdue
+// ============================================================================
+
+export const getOverdueSubscriptionList = async (req, res) => {
+    try {
+        const subscriptions = await getOverdueSubscriptions(getUserId(req));
+
+        return res.status(200).json({
+            success: true,
+            count: subscriptions.length,
+            data: subscriptions,
+        });
+    } catch (error) {
+        console.error("Get overdue subscriptions error:", error);
+
+        return res.status(error.statusCode || 500).json({
+            success: false,
+            message:
+                error.message || "Unable to load overdue subscriptions.",
+        });
+    }
+};
+
+// ============================================================================
+// SHARE SUBSCRIPTION WITH FAMILY
+// POST /api/subscriptions/:id/share
+// ============================================================================
+
+export const shareSubscriptionWithFamily = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid subscription ID.",
+            });
+        }
+
+        const subscription = await shareSubscription(
+            id,
+            getUserId(req),
+            req.body,
+        );
+
+        return res.status(200).json({
+            success: true,
+            message: "Subscription shared successfully.",
+            data: subscription,
+        });
+    } catch (error) {
+        console.error("Share subscription error:", error);
+
+        return res.status(error.statusCode || 400).json({
+            success: false,
+            message: error.message || "Unable to share subscription.",
+        });
+    }
+};
+
+// ============================================================================
+// UNSHARE SUBSCRIPTION FROM FAMILY
+// DELETE /api/subscriptions/:id/share
+// ============================================================================
+
+export const unshareSubscriptionFromFamily = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid subscription ID.",
+            });
+        }
+
+        const subscription = await unshareSubscription(
+            id,
+            getUserId(req),
+            req.body,
+        );
+
+        return res.status(200).json({
+            success: true,
+            message: "Subscription sharing updated successfully.",
+            data: subscription,
+        });
+    } catch (error) {
+        console.error("Unshare subscription error:", error);
+
+        return res.status(error.statusCode || 400).json({
+            success: false,
+            message:
+                error.message || "Unable to update subscription sharing.",
+        });
+    }
+};
+
+// ============================================================================
+// UPDATE SUBSCRIPTION MEMBER PERMISSION
+// PATCH /api/subscriptions/:id/share/:memberId
+// ============================================================================
+
+export const updateSubscriptionMemberPermission = async (req, res) => {
+    try {
+        const { id, memberId } = req.params;
+
+        if (
+            !mongoose.Types.ObjectId.isValid(id) ||
+            !mongoose.Types.ObjectId.isValid(memberId)
+        ) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid subscription or member ID.",
+            });
+        }
+
+        const subscription = await updateSubscriptionSharingPermission(
+            id,
+            getUserId(req),
+            memberId,
+            req.body?.access,
+        );
+
+        return res.status(200).json({
+            success: true,
+            message: "Subscription member permission updated successfully.",
+            data: subscription,
+        });
+    } catch (error) {
+        console.error("Update subscription member permission error:", error);
+
+        return res.status(error.statusCode || 400).json({
+            success: false,
+            message:
+                error.message ||
+                "Unable to update subscription member permission.",
+        });
+    }
+};
+
+// ============================================================================
+// REMOVE SUBSCRIPTION MEMBER
+// DELETE /api/subscriptions/:id/share/:memberId
+// ============================================================================
+
+export const removeSubscriptionMember = async (req, res) => {
+    try {
+        const { id, memberId } = req.params;
+
+        if (
+            !mongoose.Types.ObjectId.isValid(id) ||
+            !mongoose.Types.ObjectId.isValid(memberId)
+        ) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid subscription or member ID.",
+            });
+        }
+
+        const subscription = await removeSubscriptionMemberAccess(
+            id,
+            getUserId(req),
+            memberId,
+        );
+
+        return res.status(200).json({
+            success: true,
+            message: "Subscription member access removed successfully.",
+            data: subscription,
+        });
+    } catch (error) {
+        console.error("Remove subscription member error:", error);
+
+        return res.status(error.statusCode || 400).json({
+            success: false,
+            message:
+                error.message ||
+                "Unable to remove subscription member access.",
+        });
+    }
+};
+
+// ============================================================================
+// GET FAMILY SHARED SUBSCRIPTIONS
+// GET /api/subscriptions/family/shared
+// ============================================================================
+
+export const getFamilySharedSubscriptionList = async (req, res) => {
+    try {
+        const subscriptions = await getFamilySharedSubscriptions(getUserId(req));
+
+        return res.status(200).json({
+            success: true,
+            count: subscriptions.length,
+            data: subscriptions,
+        });
+    } catch (error) {
+        console.error("Get family shared subscriptions error:", error);
+
+        return res.status(error.statusCode || 500).json({
+            success: false,
+            message:
+                error.message ||
+                "Unable to load family shared subscriptions.",
+        });
+    }
+};
+
+// ============================================================================
+// UPDATE SUBSCRIPTION
+// PUT /api/subscriptions/:id
+// ============================================================================
+
+export const updateExistingSubscription = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // ----------------------------------------------------------------
+        // Validate MongoDB ID
+        // ----------------------------------------------------------------
+
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({
+                success: false,
+
+                message: "Invalid subscription ID.",
+            });
+        }
+
+        const subscription = await updateSubscription(
+            id,
+            req.body,
+            getUserId(req),
+        );
+
+        if (!subscription) {
+            return res.status(404).json({
+                success: false,
+
+                message: "Subscription not found.",
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+
+            message: "Subscription updated successfully.",
+
+            data: subscription,
+        });
+    } catch (error) {
+        console.error("Update subscription error:", error);
+
+        return res.status(error.statusCode || 400).json({
+            success: false,
+
+            message: error.message || "Unable to update subscription.",
+        });
+    }
+};
+
+// ============================================================================
+// DELETE SUBSCRIPTION
+// DELETE /api/subscriptions/:id
+// ============================================================================
+
+export const removeSubscription = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // ----------------------------------------------------------------
+        // Validate MongoDB ID
+        // ----------------------------------------------------------------
+
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({
+                success: false,
+
+                message: "Invalid subscription ID.",
+            });
+        }
+
+        const subscription = await deleteSubscription(
+            id,
+            getUserId(req),
+        );
+
+        if (!subscription) {
+            return res.status(404).json({
+                success: false,
+
+                message: "Subscription not found.",
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+
+            message: "Subscription deleted successfully.",
+
+            data: subscription,
+        });
+    } catch (error) {
+        console.error("Delete subscription error:", error);
+
+        return res.status(error.statusCode || 500).json({
+            success: false,
+
+            message: error.message || "Unable to delete subscription.",
+        });
+    }
+};

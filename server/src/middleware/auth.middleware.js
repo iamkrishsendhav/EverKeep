@@ -44,13 +44,14 @@ const authMiddleware = async (req, res, next) => {
         // 2. VALIDATE BEARER TOKEN FORMAT
         // =====================================================================
 
-        const [scheme, token] =
-            authorization.split(/\s+/);
+        const parts = authorization.split(/\s+/);
+        const [scheme, token] = parts;
 
 
         if (
             scheme?.toLowerCase() !== "bearer" ||
-            !token
+            !token ||
+            parts.length !== 2
         ) {
             return res.status(401).json({
                 success: false,
@@ -85,7 +86,8 @@ const authMiddleware = async (req, res, next) => {
         const decoded =
             jwt.verify(
                 token,
-                process.env.JWT_SECRET
+                process.env.JWT_SECRET,
+                { algorithms: ["HS256"] }
             );
 
 
@@ -126,6 +128,13 @@ const authMiddleware = async (req, res, next) => {
                 success: false,
                 message:
                     "User associated with this token no longer exists.",
+            });
+        }
+
+        if ((decoded?.tokenVersion ?? 0) !== (user.tokenVersion ?? 0)) {
+            return res.status(401).json({
+                success: false,
+                message: "Authentication token has been revoked.",
             });
         }
 

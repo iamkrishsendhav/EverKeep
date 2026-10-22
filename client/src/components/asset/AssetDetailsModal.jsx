@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+import { getAssetAccessDetails } from "../../services/asset.service";
 import {
     X,
     CalendarDays,
@@ -184,6 +186,28 @@ const AssetDetailsModal = ({
     onClose,
     onEdit,
 }) => {
+
+    const [accessDetails, setAccessDetails] = useState(null);
+    const [accessLoading, setAccessLoading] = useState(false);
+    const [accessError, setAccessError] = useState("");
+
+    useEffect(() => {
+        if (!isOpen || !asset?._id) {
+            setAccessDetails(null);
+            setAccessError("");
+            return undefined;
+        }
+        const controller = new AbortController();
+        setAccessLoading(true);
+        setAccessError("");
+        getAssetAccessDetails(asset._id, { signal: controller.signal })
+            .then((details) => { if (!controller.signal.aborted) setAccessDetails(details); })
+            .catch((error) => {
+                if (!controller.signal.aborted) setAccessError(error.response?.data?.message || "Access information could not be loaded.");
+            })
+            .finally(() => { if (!controller.signal.aborted) setAccessLoading(false); });
+        return () => controller.abort();
+    }, [isOpen, asset?._id]);
 
     if (!isOpen || !asset) return null;
 
@@ -604,6 +628,16 @@ const AssetDetailsModal = ({
 
                 </div>
 
+                <section aria-labelledby="asset-access-heading" className="mx-8 mb-8 rounded-2xl border border-slate-200 bg-white p-5">
+                    <h3 id="asset-access-heading" className="text-base font-semibold text-slate-900">Family access</h3>
+                    {accessLoading && <p role="status" className="mt-2 text-sm text-slate-500">Loading access…</p>}
+                    {accessError && <p role="alert" className="mt-2 text-sm text-rose-700">{accessError}</p>}
+                    {!accessLoading && !accessError && accessDetails && <>
+                        <p className="mt-2 text-sm text-slate-600">{accessDetails.isOwner ? (accessDetails.shared ? "You own this asset and manage its shared access." : "Only you can access this asset.") : accessDetails.canEdit ? "You can view and edit this shared asset." : "You can view this shared asset."}</p>
+                        {accessDetails.isOwner && accessDetails.members?.length > 0 && <ul className="mt-3 divide-y divide-slate-100">{accessDetails.members.map((member) => <li key={member.userId} className="flex items-center justify-between gap-4 py-2 text-sm"><span className="min-w-0"><span className="block truncate font-medium text-slate-800">{member.name}</span>{member.email && <span className="block truncate text-xs text-slate-500">{member.email}</span>}</span><span className="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">{member.access}</span></li>)}</ul>}
+                    </>}
+                </section>
+
                 {/* Footer */}
 
                 <div className="flex items-center justify-end gap-4 border-t border-slate-200 px-8 py-6">
@@ -615,14 +649,14 @@ const AssetDetailsModal = ({
                         Close
                     </button>
 
-                    <button
+                    {accessDetails?.canEdit && <button
                         onClick={() => onEdit(asset)}
                         className="flex items-center gap-2 rounded-2xl bg-[#5B4BFF] px-7 py-3 font-semibold text-white transition hover:bg-[#4A39F5]"
                     >
                         <Edit3 size={18} />
 
                         Edit Asset
-                    </button>
+                    </button>}
 
                 </div>
 

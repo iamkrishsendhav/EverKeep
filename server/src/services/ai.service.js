@@ -54,6 +54,8 @@ const MAX_MESSAGE_LENGTH = 8000;
 // based context instead.
 
 const MAX_CONTEXT_LENGTH = 50000;
+const MAX_HISTORY_MESSAGES = 12;
+const MAX_HISTORY_LENGTH = 24000;
 
 
 // ============================================================================
@@ -286,12 +288,9 @@ Do not pretend that the action succeeded.
 9. CURRENT INFORMATION
 ================================================================
 
-For questions requiring current or time-sensitive information, use
-available grounding/search capabilities when enabled.
-
-Do not present potentially outdated information as current fact.
-
-If current information cannot be verified, make that limitation clear.
+Live web search is not configured in this assistant. Do not claim to have
+searched the web or provide fabricated citations. For time-sensitive facts,
+state when you cannot verify that the information is current.
 
 ================================================================
 10. RESPONSE QUALITY
@@ -401,10 +400,7 @@ const serializeContext = (context) => {
 
     } catch (error) {
 
-        console.error(
-            "EverKeep AI context serialization failed:",
-            error,
-        );
+        console.error("EverKeep AI context serialization failed:", { name: error?.name });
 
         throw createAIError(
             "Unable to prepare EverKeep data for AI.",
@@ -496,6 +492,59 @@ const normalizeMessage = (
     return normalized;
 };
 
+const normalizeHistory = (history = []) => {
+    if (!Array.isArray(history)) {
+        throw createAIError("Conversation history must be a list of messages.", 400, { code: "INVALID_HISTORY" });
+    }
+
+    const entries = history.slice(-MAX_HISTORY_MESSAGES).flatMap((item) => {
+        if (!item || !["user", "assistant"].includes(item.role) || typeof item.content !== "string") return [];
+        const content = item.content.trim();
+        return content && content.length <= 4000 ? [{ role: item.role, content }] : [];
+    });
+    let totalLength = 0;
+    return entries.reverse().filter((item) => {
+        if (totalLength + item.content.length > MAX_HISTORY_LENGTH) return false;
+        totalLength += item.content.length;
+        return true;
+    }).reverse();
+};
+
+export const identifyContextModules = (message, history = []) => {
+    const classify = (query) => {
+    const text = String(query || "").toLowerCase();
+    const modules = new Set();
+    const asksForAccountData = /\b(my everkeep|my account|my data|my records|what do i have|what have i|what .* do i have|how many .* do i have|which .* do i have|show me my|list my|in my account|in everkeep|everkeep(?:'s)?|which of my|what is in my)\b/.test(text);
+
+    if (/\b(asset|assets|device|devices|laptop|phone|equipment|inventory)\b/.test(text) && (asksForAccountData || /\b(my|our|i own|i bought|what do i own|which .* (expire|need|have)|(?:list|show|count)\s+(?:my\s+|all\s+)?assets?|my\b.{0,20}\b(asset|device|laptop|phone|equipment))\b/.test(text))) modules.add("assets");
+    if (/\b(warranty|warranties|coverage)\b/.test(text) && (asksForAccountData || /\b(expire|expires|expiring|expiry|renew my|my warranty|my warranties|which warranty do i have|(?:list|show|count)\s+(?:my\s+|all\s+)?warrant(?:y|ies))\b/.test(text))) modules.add("warranties");
+    if (/\b(subscription|subscriptions|renewal|renewals|billing)\b/.test(text) && (asksForAccountData || /\b(next renewal|upcoming renewal|my subscriptions|active subscriptions|how many subscriptions|list my subscriptions|show my subscriptions|(?:list|show|count)\s+(?:my\s+|all\s+)?subscriptions?)\b/.test(text))) modules.add("subscriptions");
+    if (/\b(document|documents|receipt|receipts|invoice|invoices|file)\b/.test(text) && (asksForAccountData || /\b(my documents|my files|my receipts|my invoices|stored in my|uploaded by me|(?:list|show|count)\s+(?:my\s+|all\s+)?documents?)\b/.test(text))) modules.add("documents");
+    if (/\b(calendar|calendar event|calendar events|appointment|appointments|schedule|scheduled event|upcoming event)\b/.test(text) && (asksForAccountData || /\b(my schedule|my calendar|my appointments|my\b.{0,20}\b(calendar|events?|appointments?|schedule)|upcoming events|next event|show my events|list my events|(?:list|show)\s+(?:my\s+|all\s+)?events?)\b/.test(text))) modules.add("calendarEvents");
+    if (/\b(family|family member|family members|invitation|invitations)\b/.test(text) && (asksForAccountData || /\b(my family|our family|members do i|who joined|who is in|invited me|my invitation)\b/.test(text))) modules.add("family");
+
+    if (/\b(everything in my account|overview of my everkeep|overview of my account|all my everkeep data|all my records)\b/.test(text)) {
+        ["assets", "warranties", "subscriptions", "documents", "calendarEvents", "family"].forEach((module) => modules.add(module));
+    }
+
+    if (asksForAccountData && /\b(expiring|expires|expiry)\b/.test(text)) modules.add("warranties");
+
+    return modules;
+    };
+
+    const currentModules = classify(message);
+    if (currentModules.size > 0) return [...currentModules];
+
+    const isReferentialFollowUp = /\b(it|that|those|these|them|they|which one|what about|how about|tell me more about)\b/i.test(message);
+    if (!isReferentialFollowUp) return [];
+
+    const priorModules = new Set();
+    for (const item of history.slice(-4).filter((entry) => entry.role === "user")) {
+        for (const module of classify(item.content)) priorModules.add(module);
+    }
+    return [...priorModules];
+};
+
 
 // ============================================================================
 // GEMINI ERROR STATUS RESOLVER
@@ -544,7 +593,7 @@ const normalizeProviderError = (
         "Gemini AI provider error:",
         {
             status,
-            message,
+            code: error?.code,
         },
     );
 
@@ -739,6 +788,10 @@ const buildFallbackResponse = (
         return "Hi! I can help with your assets, warranties, subscriptions, documents, calendar events, or family data.";
     }
 
+    if (!Object.keys(context || {}).length) {
+        return "I'm temporarily unable to reach the AI service. Please try again in a moment.";
+    }
+
     if (
         normalized.includes("asset") ||
         normalized.includes("device") ||
@@ -865,6 +918,7 @@ const buildFallbackResponse = (
 export const generateAIResponse = async (
     message,
     userId,
+    suppliedHistory = [],
 ) => {
 
     // ========================================================================
@@ -890,44 +944,31 @@ export const generateAIResponse = async (
 
 
     // ========================================================================
-    // LOAD PRIVATE EVERKEEP CONTEXT
+    // NORMALIZE CURRENT CONVERSATION AND LOAD RELEVANT CONTEXT
     // ========================================================================
     //
     // IMPORTANT:
     //
-    // We still load the context for every request because the model itself
-    // decides whether it is relevant.
-    //
-    // For a large-scale production system, this should eventually become
-    // retrieval/tool-based context rather than loading everything every time.
+    // General questions skip MongoDB entirely. For account-specific questions,
+    // load only the relevant, authenticated user's collections.
     //
     // ========================================================================
 
-    let context;
+    const history = normalizeHistory(suppliedHistory);
+    const contextModules = identifyContextModules(normalizedMessage, history);
+    let context = {};
 
-    try {
-
-        context =
-            await buildAIContext(
-                userId,
-            );
-
-    } catch (error) {
-
-        console.error(
-            "EverKeep AI context loading failed:",
-            error,
-        );
-
-        throw createAIError(
-            "Unable to load your EverKeep data.",
-            500,
-            {
+    if (contextModules.length > 0) {
+        try {
+            context = await buildAIContext(userId, contextModules);
+        } catch (error) {
+            console.error("EverKeep AI context loading failed:", { name: error?.name, code: error?.code });
+            throw createAIError("Unable to load the relevant EverKeep data.", 500, {
                 code: "CONTEXT_LOAD_FAILED",
                 retryable: true,
                 cause: error,
-            },
-        );
+            });
+        }
     }
 
 
@@ -935,29 +976,16 @@ export const generateAIResponse = async (
     // SERIALIZE PRIVATE CONTEXT
     // ========================================================================
 
-    const contextText =
-        serializeContext(
-            context,
-        );
+    const contextText = contextModules.length > 0
+        ? `\n\nPRIVATE EVERKEEP DATA (authenticated user; use only when relevant):\n${serializeContext(context)}`
+        : "";
 
 
     // ========================================================================
     // BUILD FINAL SYSTEM INSTRUCTION
     // ========================================================================
 
-    const systemInstruction = `
-${SYSTEM_INSTRUCTIONS}
-
-================================================================
-PRIVATE EVERKEEP USER CONTEXT
-================================================================
-
-${contextText}
-
-================================================================
-END PRIVATE EVERKEEP USER CONTEXT
-================================================================
-`;
+    const systemInstruction = `${SYSTEM_INSTRUCTIONS}${contextText}`;
 
     // ========================================================================
     // GENERATE RESPONSE
@@ -973,7 +1001,13 @@ END PRIVATE EVERKEEP USER CONTEXT
 
                 model: AI_MODEL,
 
-                contents: normalizedMessage,
+                contents: [
+                    ...history.map((item) => ({
+                        role: item.role === "assistant" ? "model" : "user",
+                        parts: [{ text: item.content }],
+                    })),
+                    { role: "user", parts: [{ text: normalizedMessage }] },
+                ],
 
                 config: {
 

@@ -4,209 +4,7 @@ import {
     useRef,
     useState,
 } from "react";
-
-
-// ============================================================================
-// HELPERS
-// ============================================================================
-
-const formatMessage = (content = "") => {
-    if (!content) return null;
-
-    const lines = String(content).split("\n");
-
-    return lines.map((line, index) => {
-        const trimmedLine = line.trim();
-
-        if (!trimmedLine) {
-            return (
-                <div
-                    key={index}
-                    className="h-2"
-                />
-            );
-        }
-
-        // ------------------------------------------------------------
-        // Bullet point
-        // ------------------------------------------------------------
-
-        if (
-            trimmedLine.startsWith("- ") ||
-            trimmedLine.startsWith("• ")
-        ) {
-            return (
-                <div
-                    key={index}
-                    className="flex gap-2"
-                >
-                    <span className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-slate-400" />
-
-                    <span>
-                        {trimmedLine
-                            .replace(/^[-•]\s*/, "")
-                            .trim()}
-                    </span>
-                </div>
-            );
-        }
-
-        // ------------------------------------------------------------
-        // Numbered list
-        // ------------------------------------------------------------
-
-        const numberedMatch =
-            trimmedLine.match(/^(\d+)\.\s+(.*)$/);
-
-        if (numberedMatch) {
-            return (
-                <div
-                    key={index}
-                    className="flex gap-3"
-                >
-                    <span
-                        className="
-                            flex
-                            h-5
-                            min-w-5
-                            items-center
-                            justify-center
-                            rounded-full
-                            bg-slate-100
-                            text-[11px]
-                            font-semibold
-                            text-slate-600
-                        "
-                    >
-                        {numberedMatch[1]}
-                    </span>
-
-                    <span>
-                        {numberedMatch[2]}
-                    </span>
-                </div>
-            );
-        }
-
-        // ------------------------------------------------------------
-        // Heading
-        // ------------------------------------------------------------
-
-        if (
-            trimmedLine.startsWith("### ")
-        ) {
-            return (
-                <h4
-                    key={index}
-                    className="
-                        mt-3
-                        text-sm
-                        font-semibold
-                        text-slate-900
-                    "
-                >
-                    {trimmedLine.replace(
-                        /^###\s*/,
-                        ""
-                    )}
-                </h4>
-            );
-        }
-
-        if (
-            trimmedLine.startsWith("## ")
-        ) {
-            return (
-                <h3
-                    key={index}
-                    className="
-                        mt-3
-                        text-base
-                        font-semibold
-                        text-slate-900
-                    "
-                >
-                    {trimmedLine.replace(
-                        /^##\s*/,
-                        ""
-                    )}
-                </h3>
-            );
-        }
-
-        // ------------------------------------------------------------
-        // Normal paragraph
-        // ------------------------------------------------------------
-
-        return (
-            <p
-                key={index}
-                className="min-h-[1.4rem]"
-            >
-                {formatInlineText(trimmedLine)}
-            </p>
-        );
-    });
-};
-
-
-// ============================================================================
-// INLINE TEXT FORMATTER
-// ============================================================================
-
-const formatInlineText = (text) => {
-    const parts =
-        text.split(
-            /(\*\*[^*]+\*\*|`[^`]+`)/g
-        );
-
-    return parts.map(
-        (part, index) => {
-
-            if (
-                part.startsWith("**") &&
-                part.endsWith("**")
-            ) {
-                return (
-                    <strong
-                        key={index}
-                        className="font-semibold text-slate-900"
-                    >
-                        {part.slice(2, -2)}
-                    </strong>
-                );
-            }
-
-            if (
-                part.startsWith("`") &&
-                part.endsWith("`")
-            ) {
-                return (
-                    <code
-                        key={index}
-                        className="
-                            rounded-md
-                            bg-slate-100
-                            px-1.5
-                            py-0.5
-                            font-mono
-                            text-[12px]
-                            text-slate-700
-                        "
-                    >
-                        {part.slice(1, -1)}
-                    </code>
-                );
-            }
-
-            return (
-                <span key={index}>
-                    {part}
-                </span>
-            );
-        }
-    );
-};
+import MarkdownContent from "./MarkdownContent.jsx";
 
 
 // ============================================================================
@@ -354,42 +152,6 @@ const RefreshIcon = () => (
 
 
 // ============================================================================
-// MORE ICON
-// ============================================================================
-
-const MoreIcon = () => (
-    <svg
-        width="16"
-        height="16"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-    >
-        <circle
-            cx="5"
-            cy="12"
-            r="1"
-        />
-
-        <circle
-            cx="12"
-            cy="12"
-            r="1"
-        />
-
-        <circle
-            cx="19"
-            cy="12"
-            r="1"
-        />
-    </svg>
-);
-
-
-// ============================================================================
 // LOADING DOTS
 // ============================================================================
 
@@ -502,9 +264,8 @@ const EmptyConversation = ({
                     text-slate-500
                 "
             >
-                Ask EverKeep AI about your assets,
-                warranties, subscriptions, documents,
-                or other information in your account.
+                Ask general questions, get coding and writing help, or ask
+                about information in your EverKeep account.
             </p>
 
 
@@ -748,7 +509,7 @@ const AIMessage = ({
                         text-slate-600
                     "
                 >
-                    {formatMessage(content)}
+                    <MarkdownContent content={content} />
                 </div>
 
 

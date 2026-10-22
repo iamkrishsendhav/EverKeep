@@ -3,27 +3,18 @@ import { useCallback, useEffect, useState } from "react";
 import {
     Settings,
     Users,
-    ShieldCheck,
     Bell,
     Save,
     Loader2,
     AlertCircle,
     CheckCircle2,
     Trash2,
-    Lock,
-    Mail,
     UserRound,
-    Package,
-    CreditCard,
-    FileText,
-    Shield,
-    ChevronRight,
 } from "lucide-react";
 
 import {
     getFamily,
     updateFamily,
-    updateFamilySettings,
     FamilyApiError,
 } from "../../services/family.service";
 
@@ -34,66 +25,17 @@ import {
 
 const DEFAULT_SETTINGS = {
     name: "",
-    description: "",
-
-    memberPermissions: {
-        assets: true,
-        subscriptions: true,
-        documents: true,
-        warranties: true,
-    },
-
-    notifications: {
-        renewalReminders: true,
-        activityUpdates: true,
-        memberUpdates: true,
-    },
-
-    privacy: {
-        requireApprovalForNewMembers: false,
+    settings: {
+        renewalAlerts: true,
+        warrantyAlerts: true,
+        insuranceAlerts: true,
+        activityAlerts: true,
+        memberUpdateAlerts: true,
     },
 };
 
 
 // ============================================================================
-// RESOURCE CONFIG
-// ============================================================================
-
-const RESOURCE_SETTINGS = [
-    {
-        key: "assets",
-        label: "Assets",
-        description:
-            "Allow family members to access shared assets.",
-        icon: Package,
-    },
-
-    {
-        key: "subscriptions",
-        label: "Subscriptions",
-        description:
-            "Allow access to shared subscription information.",
-        icon: CreditCard,
-    },
-
-    {
-        key: "documents",
-        label: "Documents",
-        description:
-            "Allow access to shared documents.",
-        icon: FileText,
-    },
-
-    {
-        key: "warranties",
-        label: "Warranties",
-        description:
-            "Allow access to warranty information.",
-        icon: Shield,
-    },
-];
-
-
 // ============================================================================
 // COMPONENT
 // ============================================================================
@@ -166,36 +108,14 @@ const FamilySettings = () => {
                 );
 
 
-                const familySettings =
-                    familyData?.settings ||
-                    {};
-
-
                 const normalized = {
-
                     name:
                         familyData?.name ||
                         "",
-
-                    description:
-                        familyData?.description ||
-                        "",
-
-                    memberPermissions: {
-                        ...DEFAULT_SETTINGS.memberPermissions,
-                        ...(familySettings?.memberPermissions || {}),
+                    settings: {
+                        ...DEFAULT_SETTINGS.settings,
+                        ...(familyData?.settings || {}),
                     },
-
-                    notifications: {
-                        ...DEFAULT_SETTINGS.notifications,
-                        ...(familySettings?.notifications || {}),
-                    },
-
-                    privacy: {
-                        ...DEFAULT_SETTINGS.privacy,
-                        ...(familySettings?.privacy || {}),
-                    },
-
                 };
 
 
@@ -384,40 +304,17 @@ const FamilySettings = () => {
             // UPDATE FAMILY BASIC INFORMATION
             // -------------------------------------------------------------
 
-            const updatedFamily =
-                await updateFamily({
-
-                    name:
-                        settings.name.trim(),
-
-                    description:
-                        settings.description.trim(),
-
-                });
-
-
-            // -------------------------------------------------------------
-            // UPDATE FAMILY SETTINGS
-            // -------------------------------------------------------------
-
-            await updateFamilySettings({
-
-                memberPermissions:
-                    settings.memberPermissions,
-
-                notifications:
-                    settings.notifications,
-
-                privacy:
-                    settings.privacy,
-
+            const updatedFamily = await updateFamily({
+                name: settings.name.trim(),
+                settings: settings.settings,
             });
 
 
-            const nextFamily =
-                updatedFamily?.family ||
-                updatedFamily ||
-                family;
+            const nextFamily = {
+                ...family,
+                name: settings.name.trim(),
+                settings: updatedFamily?.settings || settings.settings,
+            };
 
 
             setFamily(
@@ -651,8 +548,7 @@ const FamilySettings = () => {
 
                             <p className="mt-1 text-sm leading-6 text-gray-500 dark:text-gray-400">
 
-                                Manage your family workspace,
-                                permissions and notifications.
+                                Manage your family workspace and alert preferences.
 
                             </p>
 
@@ -745,20 +641,6 @@ const FamilySettings = () => {
                                     />
 
                                     General
-
-                                </a>
-
-
-                                <a
-                                    href="#permissions"
-                                    className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-gray-500 transition hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white"
-                                >
-
-                                    <ShieldCheck
-                                        size={14}
-                                    />
-
-                                    Permissions
 
                                 </a>
 
@@ -920,230 +802,6 @@ const FamilySettings = () => {
                                 </div>
 
 
-                                {/* DESCRIPTION */}
-
-                                <div>
-
-                                    <label
-                                        htmlFor="family-settings-description"
-                                        className="mb-1.5 block text-xs font-medium text-gray-700 dark:text-gray-300"
-                                    >
-
-                                        Description
-
-                                        <span className="ml-1 font-normal text-gray-400">
-
-                                            optional
-
-                                        </span>
-
-                                    </label>
-
-
-                                    <textarea
-                                        id="family-settings-description"
-                                        value={
-                                            settings.description
-                                        }
-                                        onChange={(
-                                            event
-                                        ) =>
-                                            updateField(
-                                                "description",
-                                                event.target.value
-                                            )
-                                        }
-                                        maxLength={
-                                            500
-                                        }
-                                        rows={3}
-                                        placeholder="A short description for your family workspace..."
-                                        className="
-                                            w-full
-                                            resize-none
-                                            rounded-xl
-                                            border
-                                            border-gray-200
-                                            bg-white
-                                            px-3
-                                            py-3
-                                            text-sm
-                                            leading-6
-                                            text-gray-900
-                                            outline-none
-                                            transition
-                                            placeholder:text-gray-400
-                                            focus:border-gray-400
-                                            focus:ring-2
-                                            focus:ring-gray-900/10
-                                            dark:border-gray-700
-                                            dark:bg-gray-900
-                                            dark:text-white
-                                        "
-                                    />
-
-                                </div>
-
-                            </div>
-
-                        </section>
-
-
-                        {/* ============================================================= */}
-                        {/* PERMISSIONS */}
-                        {/* ============================================================= */}
-
-                        <section
-                            id="permissions"
-                            className="scroll-mt-6 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900"
-                        >
-
-                            <div className="border-b border-gray-100 px-5 py-5 sm:px-6 dark:border-gray-800">
-
-                                <div className="flex items-start gap-3">
-
-                                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300">
-
-                                        <ShieldCheck
-                                            size={16}
-                                        />
-
-                                    </div>
-
-
-                                    <div>
-
-                                        <h2 className="text-sm font-semibold text-gray-900 dark:text-white">
-
-                                            Member permissions
-
-                                        </h2>
-
-                                        <p className="mt-1 text-xs leading-5 text-gray-500 dark:text-gray-400">
-
-                                            Control which shared resources
-                                            family members can access.
-
-                                        </p>
-
-                                    </div>
-
-                                </div>
-
-                            </div>
-
-
-                            <div className="divide-y divide-gray-100 dark:divide-gray-800">
-
-                                {RESOURCE_SETTINGS.map(
-                                    ({
-                                        key,
-                                        label,
-                                        description,
-                                        icon: Icon,
-                                    }) => {
-
-                                        const enabled =
-                                            settings
-                                                .memberPermissions[
-                                            key
-                                            ];
-
-
-                                        return (
-
-                                            <div
-                                                key={key}
-                                                className="flex items-center justify-between gap-4 px-5 py-4 sm:px-6"
-                                            >
-
-                                                <div className="flex min-w-0 items-center gap-3">
-
-                                                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gray-50 text-gray-500 dark:bg-gray-800 dark:text-gray-400">
-
-                                                        <Icon
-                                                            size={16}
-                                                        />
-
-                                                    </div>
-
-
-                                                    <div className="min-w-0">
-
-                                                        <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
-
-                                                            {label}
-
-                                                        </p>
-
-
-                                                        <p className="mt-0.5 text-xs leading-5 text-gray-500 dark:text-gray-500">
-
-                                                            {description}
-
-                                                        </p>
-
-                                                    </div>
-
-                                                </div>
-
-
-                                                <button
-                                                    type="button"
-                                                    role="switch"
-                                                    aria-checked={
-                                                        enabled
-                                                    }
-                                                    onClick={() =>
-                                                        updateNestedField(
-                                                            "memberPermissions",
-                                                            key,
-                                                            !enabled
-                                                        )
-                                                    }
-                                                    className={`
-                                                        relative
-                                                        h-6
-                                                        w-10
-                                                        shrink-0
-                                                        rounded-full
-                                                        transition-colors
-                                                        focus:outline-none
-                                                        focus:ring-2
-                                                        focus:ring-gray-900/10
-                                                        ${enabled
-                                                            ? "bg-gray-900 dark:bg-white"
-                                                            : "bg-gray-200 dark:bg-gray-700"
-                                                        }
-                                                    `}
-                                                >
-
-                                                    <span
-                                                        className={`
-                                                            absolute
-                                                            top-1
-                                                            h-4
-                                                            w-4
-                                                            rounded-full
-                                                            bg-white
-                                                            shadow-sm
-                                                            transition-transform
-                                                            ${enabled
-                                                                ? "translate-x-5"
-                                                                : "translate-x-1"
-                                                            }
-                                                            dark:bg-gray-900
-                                                        `}
-                                                    />
-
-                                                </button>
-
-                                            </div>
-
-                                        );
-                                    }
-                                )}
-
                             </div>
 
                         </section>
@@ -1197,21 +855,35 @@ const FamilySettings = () => {
 
                                 {[
                                     {
-                                        key: "renewalReminders",
+                                        key: "renewalAlerts",
                                         label: "Renewal reminders",
                                         description:
                                             "Notify family members about upcoming renewals.",
                                     },
 
                                     {
-                                        key: "activityUpdates",
+                                        key: "warrantyAlerts",
+                                        label: "Warranty alerts",
+                                        description:
+                                            "Notify about upcoming warranty expirations.",
+                                    },
+
+                                    {
+                                        key: "insuranceAlerts",
+                                        label: "Insurance alerts",
+                                        description:
+                                            "Notify about upcoming insurance expirations.",
+                                    },
+
+                                    {
+                                        key: "activityAlerts",
                                         label: "Activity updates",
                                         description:
                                             "Notify about important activity in the family workspace.",
                                     },
 
                                     {
-                                        key: "memberUpdates",
+                                        key: "memberUpdateAlerts",
                                         label: "Member updates",
                                         description:
                                             "Notify when members join, leave or change permissions.",
@@ -1225,7 +897,7 @@ const FamilySettings = () => {
 
                                         const enabled =
                                             settings
-                                                .notifications[
+                                                .settings[
                                             key
                                             ];
 
@@ -1258,12 +930,13 @@ const FamilySettings = () => {
                                                 <button
                                                     type="button"
                                                     role="switch"
+                                                    aria-label={label}
                                                     aria-checked={
                                                         enabled
                                                     }
                                                     onClick={() =>
                                                         updateNestedField(
-                                                            "notifications",
+                                                            "settings",
                                                             key,
                                                             !enabled
                                                         )
@@ -1310,135 +983,6 @@ const FamilySettings = () => {
                                         );
                                     }
                                 )}
-
-                            </div>
-
-                        </section>
-
-
-                        {/* ============================================================= */}
-                        {/* PRIVACY */}
-                        {/* ============================================================= */}
-
-                        <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
-
-                            <div className="border-b border-gray-100 px-5 py-5 sm:px-6 dark:border-gray-800">
-
-                                <div className="flex items-start gap-3">
-
-                                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300">
-
-                                        <Lock
-                                            size={16}
-                                        />
-
-                                    </div>
-
-
-                                    <div>
-
-                                        <h2 className="text-sm font-semibold text-gray-900 dark:text-white">
-
-                                            Privacy & security
-
-                                        </h2>
-
-                                        <p className="mt-1 text-xs leading-5 text-gray-500 dark:text-gray-400">
-
-                                            Keep control over who can join
-                                            your family workspace.
-
-                                        </p>
-
-                                    </div>
-
-                                </div>
-
-                            </div>
-
-
-                            <div className="px-5 py-4 sm:px-6">
-
-                                <div className="flex items-center justify-between gap-4">
-
-                                    <div className="min-w-0">
-
-                                        <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
-
-                                            Require approval for new members
-
-                                        </p>
-
-
-                                        <p className="mt-0.5 text-xs leading-5 text-gray-500 dark:text-gray-500">
-
-                                            New members must be approved
-                                            before getting access.
-
-                                        </p>
-
-                                    </div>
-
-
-                                    <button
-                                        type="button"
-                                        role="switch"
-                                        aria-checked={
-                                            settings
-                                                .privacy
-                                                .requireApprovalForNewMembers
-                                        }
-                                        onClick={() =>
-                                            updateNestedField(
-                                                "privacy",
-                                                "requireApprovalForNewMembers",
-                                                !settings
-                                                    .privacy
-                                                    .requireApprovalForNewMembers
-                                            )
-                                        }
-                                        className={`
-                                            relative
-                                            h-6
-                                            w-10
-                                            shrink-0
-                                            rounded-full
-                                            transition-colors
-                                            focus:outline-none
-                                            focus:ring-2
-                                            focus:ring-gray-900/10
-                                            ${settings
-                                                .privacy
-                                                .requireApprovalForNewMembers
-                                                ? "bg-gray-900 dark:bg-white"
-                                                : "bg-gray-200 dark:bg-gray-700"
-                                            }
-                                        `}
-                                    >
-
-                                        <span
-                                            className={`
-                                                absolute
-                                                top-1
-                                                h-4
-                                                w-4
-                                                rounded-full
-                                                bg-white
-                                                shadow-sm
-                                                transition-transform
-                                                ${settings
-                                                    .privacy
-                                                    .requireApprovalForNewMembers
-                                                    ? "translate-x-5"
-                                                    : "translate-x-1"
-                                                }
-                                                dark:bg-gray-900
-                                            `}
-                                        />
-
-                                    </button>
-
-                                </div>
 
                             </div>
 

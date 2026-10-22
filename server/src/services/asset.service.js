@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import Asset from "../models/Asset.js";
 
 import Family from "../models/Family.js";
+import { buildAssetAccessDetails } from "./assetAccessDetails.js";
 
 // ============================================================================
 // ASSET SERVICE
@@ -78,6 +79,48 @@ const toObjectId = (value) => {
     }
 
     return new mongoose.Types.ObjectId(value);
+};
+
+const escapeSearchTerm = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+export const buildAssetSearchFilter = (userId, family, term) => {
+    const accessConditions = [{ owner: userId }];
+    const isFamilyOwner = family && normalizeId(family.owner) === normalizeId(userId);
+    const activeMember = family?.members?.find((member) =>
+        normalizeId(member.user) === normalizeId(userId) && member.status === "Active",
+    );
+    const canViewFamilyAssets = Boolean(isFamilyOwner || (activeMember && activeMember.permissions?.assets !== false));
+
+    if (family && canViewFamilyAssets) {
+        accessConditions.push({
+            family: family._id,
+            "sharing.shared": true,
+            "sharing.members.user": userId,
+        });
+    }
+
+    const query = { $or: accessConditions };
+    const expression = new RegExp(escapeSearchTerm(term), "i");
+    query.$and = [{
+        $or: [
+            { name: expression },
+            { brand: expression },
+            { model: expression },
+            { serialNumber: expression },
+        ],
+    }];
+    return query;
+};
+
+export const searchAssetsForUser = async (userId, term, limit = 5) => {
+    if (!userId) throw new Error("Authentication required.");
+    const family = await getUserFamily(userId);
+    const query = buildAssetSearchFilter(userId, family, term);
+    return Asset.find(query)
+        .select("name brand model category status warrantyExpiry")
+        .sort({ name: 1, _id: 1 })
+        .limit(Math.min(Math.max(Number(limit) || 5, 1), 10))
+        .lean();
 };
 
 // ============================================================================
@@ -1134,15 +1177,16 @@ export const removeAssetMemberAccess = async (userId, assetId, memberId) => {
 // ============================================================================
 
 export const getAssetAccessDetails = async (userId, assetId) => {
+    if (!userId) return buildAssetAccessDetails(null, userId, null);
     const asset = await findAssetOrFail(assetId);
 
     const access = await getAssetAccess(asset, userId);
 
-    return {
-        assetId: asset._id,
+    if (access.isOwner) {
+        await asset.populate("sharing.members.user", "name email");
+    }
 
-        ...access,
-    };
+    return buildAssetAccessDetails(asset, userId, access);
 };
 
 // ============================================================================
@@ -1414,6 +1458,8 @@ export default {
     removeAssetMemberAccess,
 
     getAssetAccessDetails,
+
+    searchAssetsForUser,
 
     getAssetStats,
 

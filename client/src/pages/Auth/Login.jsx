@@ -184,7 +184,7 @@ const Login = () => {
                 replace: true,
             });
         } catch (error) {
-            console.error("Login failed:", error);
+            console.error("Login failed:", { status: error?.response?.status || "NETWORK_ERROR" });
 
             // -----------------------------------------------------------------
             // USER-FRIENDLY ERROR
@@ -737,6 +737,10 @@ const Login = () => {
                                         "
                                     />
                                 </div>
+                            </div>
+
+                            <div className="-mt-2 text-right">
+                                <Link to="/forgot-password" className="text-xs font-semibold text-indigo-700 hover:underline">Forgot password?</Link>
                             </div>
 
                             {/* ==================================================

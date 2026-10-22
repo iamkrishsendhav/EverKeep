@@ -29,6 +29,7 @@ export const chatWithAI = async (req, res) => {
 
         const {
             message,
+            history = [],
         } = req.body;
 
 
@@ -45,6 +46,13 @@ export const chatWithAI = async (req, res) => {
                 success: false,
                 message: "Message is required.",
             });
+        }
+
+        if (!Array.isArray(history) || history.length > 12 || history.some((entry) =>
+            !entry || !["user", "assistant"].includes(entry.role) ||
+            typeof entry.content !== "string" || entry.content.length > 4000
+        )) {
+            return res.status(400).json({ success: false, message: "Conversation history is invalid or too long." });
         }
 
 
@@ -73,7 +81,8 @@ export const chatWithAI = async (req, res) => {
         const aiResponse =
             await generateAIResponse(
                 message.trim(),
-                userId
+                userId,
+                history,
             );
 
 
@@ -97,10 +106,7 @@ export const chatWithAI = async (req, res) => {
         // SERVER-SIDE LOGGING
         // ====================================================================
 
-        console.error(
-            "AI chat error:",
-            error?.message || error
-        );
+        console.error("AI chat request failed:", { code: error?.code, statusCode: error?.statusCode });
 
 
         // ====================================================================

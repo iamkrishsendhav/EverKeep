@@ -34,7 +34,7 @@ const userSchema = new mongoose.Schema(
         password: {
             type: String,
             required: true,
-            minlength: 6,
+            minlength: 8,
             select: false,
         },
 
@@ -45,6 +45,16 @@ const userSchema = new mongoose.Schema(
 
         avatar: {
             type: String,
+            default: "",
+        },
+
+        phoneNumber: {
+            type: String,
+            trim: true,
+            validate: {
+                validator: (value) => !value || /^\+[1-9]\d{7,14}$/.test(value),
+                message: "Phone number must use international format.",
+            },
             default: "",
         },
 
@@ -90,6 +100,26 @@ const userSchema = new mongoose.Schema(
         isEmailVerified: {
             type: Boolean,
             default: false,
+        },
+
+        emailVerificationTokenHash: { type: String, select: false, default: undefined },
+        emailVerificationExpiresAt: { type: Date, select: false, default: undefined },
+        passwordResetTokenHash: { type: String, select: false, default: undefined },
+        passwordResetExpiresAt: { type: Date, select: false, default: undefined },
+        tokenVersion: { type: Number, default: 0, min: 0 },
+
+        notificationPreferences: {
+            emailEnabled: { type: Boolean, default: false },
+            emailCategories: {
+                type: [{ type: String, enum: ["warranty", "subscription", "asset", "document", "family", "calendar", "system"] }],
+                default: ["warranty", "subscription", "asset", "family", "calendar"],
+            },
+            whatsappEnabled: { type: Boolean, default: false },
+            whatsappCategories: {
+                type: [{ type: String, enum: ["warranty", "subscription", "asset", "document", "family", "calendar", "system"] }],
+                default: ["warranty", "subscription", "asset", "family", "calendar"],
+            },
+            whatsappConsentAt: { type: Date, default: null },
         },
 
     },

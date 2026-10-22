@@ -12,6 +12,9 @@ import {
 import Landing from "../pages/Landing/Landing";
 import Login from "../pages/Auth/Login";
 import Register from "../pages/Auth/Register";
+import ForgotPassword from "../pages/Auth/ForgotPassword";
+import ResetPassword from "../pages/Auth/ResetPassword";
+import VerifyEmail from "../pages/Auth/VerifyEmail";
 
 
 // ============================================================================
@@ -33,6 +36,9 @@ import Calendar from "../pages/Calendar/Calendar";
 import Subscriptions from "../pages/Subscriptions/Subscriptions";
 import Family from "../pages/Family/Family";
 import AI from "../pages/AI/AI";
+import Analytics from "../pages/Analytics/Analytics";
+import Notifications from "../pages/Notifications/Notifications";
+import Settings from "../pages/Settings/Settings";
 
 
 // ============================================================================
@@ -73,6 +79,10 @@ const AppRoutes = () => {
                     path="/register"
                     element={<Register />}
                 />
+
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
+                <Route path="/verify-email" element={<VerifyEmail />} />
 
 
                 {/* ============================================================
@@ -174,62 +184,7 @@ const AppRoutes = () => {
 
                         <Route
                             path="analytics"
-                            element={
-                                <section className="space-y-4">
-
-                                    <div
-                                        className="
-                                            rounded-[1.75rem]
-                                            border
-                                            border-slate-200/80
-                                            bg-white/80
-                                            p-6
-                                            shadow-[0_16px_48px_rgba(15,23,42,0.06)]
-                                            backdrop-blur-xl
-                                        "
-                                    >
-
-                                        <p
-                                            className="
-                                                text-[11px]
-                                                font-semibold
-                                                uppercase
-                                                tracking-[0.24em]
-                                                text-slate-500
-                                            "
-                                        >
-                                            Workspace
-                                        </p>
-
-                                        <h1
-                                            className="
-                                                mt-2
-                                                text-3xl
-                                                font-semibold
-                                                tracking-tight
-                                                text-slate-950
-                                            "
-                                        >
-                                            Analytics
-                                        </h1>
-
-                                        <p
-                                            className="
-                                                mt-3
-                                                max-w-2xl
-                                                text-sm
-                                                leading-6
-                                                text-slate-600
-                                            "
-                                        >
-                                            Performance and insight
-                                            reporting will appear here.
-                                        </p>
-
-                                    </div>
-
-                                </section>
-                            }
+                            element={<Analytics />}
                         />
 
 
@@ -239,62 +194,7 @@ const AppRoutes = () => {
 
                         <Route
                             path="notifications"
-                            element={
-                                <section className="space-y-4">
-
-                                    <div
-                                        className="
-                                            rounded-[1.75rem]
-                                            border
-                                            border-slate-200/80
-                                            bg-white/80
-                                            p-6
-                                            shadow-[0_16px_48px_rgba(15,23,42,0.06)]
-                                            backdrop-blur-xl
-                                        "
-                                    >
-
-                                        <p
-                                            className="
-                                                text-[11px]
-                                                font-semibold
-                                                uppercase
-                                                tracking-[0.24em]
-                                                text-slate-500
-                                            "
-                                        >
-                                            Workspace
-                                        </p>
-
-                                        <h1
-                                            className="
-                                                mt-2
-                                                text-3xl
-                                                font-semibold
-                                                tracking-tight
-                                                text-slate-950
-                                            "
-                                        >
-                                            Notifications
-                                        </h1>
-
-                                        <p
-                                            className="
-                                                mt-3
-                                                max-w-2xl
-                                                text-sm
-                                                leading-6
-                                                text-slate-600
-                                            "
-                                        >
-                                            Activity streams and system
-                                            alerts will appear here.
-                                        </p>
-
-                                    </div>
-
-                                </section>
-                            }
+                            element={<Notifications />}
                         />
 
 
@@ -304,62 +204,7 @@ const AppRoutes = () => {
 
                         <Route
                             path="settings"
-                            element={
-                                <section className="space-y-4">
-
-                                    <div
-                                        className="
-                                            rounded-[1.75rem]
-                                            border
-                                            border-slate-200/80
-                                            bg-white/80
-                                            p-6
-                                            shadow-[0_16px_48px_rgba(15,23,42,0.06)]
-                                            backdrop-blur-xl
-                                        "
-                                    >
-
-                                        <p
-                                            className="
-                                                text-[11px]
-                                                font-semibold
-                                                uppercase
-                                                tracking-[0.24em]
-                                                text-slate-500
-                                            "
-                                        >
-                                            Workspace
-                                        </p>
-
-                                        <h1
-                                            className="
-                                                mt-2
-                                                text-3xl
-                                                font-semibold
-                                                tracking-tight
-                                                text-slate-950
-                                            "
-                                        >
-                                            Settings
-                                        </h1>
-
-                                        <p
-                                            className="
-                                                mt-3
-                                                max-w-2xl
-                                                text-sm
-                                                leading-6
-                                                text-slate-600
-                                            "
-                                        >
-                                            Account and preference
-                                            management will appear here.
-                                        </p>
-
-                                    </div>
-
-                                </section>
-                            }
+                            element={<Settings />}
                         />
 
 

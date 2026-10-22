@@ -360,6 +360,8 @@ assetSchema.index({
     "sharing.members.user": 1,
 });
 
+assetSchema.index({ reminderEnabled: 1, status: 1, warrantyExpiry: 1 });
+
 // ============================================================================
 // MODEL
 // ============================================================================

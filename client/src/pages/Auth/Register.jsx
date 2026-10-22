@@ -203,10 +203,10 @@ const Register = () => {
         }
 
 
-        if (password.length < 6) {
+        if (password.length < 8) {
 
             setError(
-                "Password must contain at least 6 characters."
+                "Password must contain at least 8 characters."
             );
 
             return;
@@ -300,10 +300,7 @@ const Register = () => {
 
         } catch (error) {
 
-            console.error(
-                "Registration failed:",
-                error
-            );
+            console.error("Registration failed:", { status: error?.response?.status || "NETWORK_ERROR" });
 
 
             const status =

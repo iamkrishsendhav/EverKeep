@@ -34,25 +34,6 @@ const SendIcon = () => (
 );
 
 
-const StopIcon = () => (
-    <svg
-        width="15"
-        height="15"
-        viewBox="0 0 24 24"
-        fill="currentColor"
-        aria-hidden="true"
-    >
-        <rect
-            x="6"
-            y="6"
-            width="12"
-            height="12"
-            rx="2"
-        />
-    </svg>
-);
-
-
 const PlusIcon = () => (
     <svg
         width="18"
@@ -79,7 +60,6 @@ const PlusIcon = () => (
 //
 // onSend(message)
 // isLoading
-// onStop()
 // disabled
 // placeholder
 // maxLength
@@ -89,7 +69,6 @@ const PlusIcon = () => (
 const ChatInput = ({
     onSend,
     isLoading = false,
-    onStop,
     disabled = false,
     placeholder = "Message EverKeep AI...",
     maxLength = MAX_LENGTH,
@@ -216,17 +195,6 @@ const ChatInput = ({
         ) {
             setValue(nextValue);
         }
-
-    };
-
-
-    // =========================================================================
-    // STOP GENERATION
-    // =========================================================================
-
-    const handleStop = () => {
-
-        onStop?.();
 
     };
 
@@ -420,33 +388,7 @@ const ChatInput = ({
                             {/* Send / Stop */}
 
                             {isLoading ? (
-
-                                <button
-                                    type="button"
-                                    onClick={
-                                        handleStop
-                                    }
-                                    className="
-                                        flex
-                                        h-9
-                                        w-9
-                                        items-center
-                                        justify-center
-                                        rounded-xl
-                                        bg-slate-900
-                                        text-white
-                                        transition
-                                        hover:bg-slate-800
-                                        focus:outline-none
-                                        focus:ring-2
-                                        focus:ring-slate-300
-                                    "
-                                    aria-label="Stop generating"
-                                    title="Stop generating"
-                                >
-                                    <StopIcon />
-                                </button>
-
+                                <span role="status" className="px-2 text-xs text-slate-500">Thinking…</span>
                             ) : (
 
                                 <button

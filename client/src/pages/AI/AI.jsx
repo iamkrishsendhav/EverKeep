@@ -11,7 +11,6 @@ import {
 } from "lucide-react";
 
 import {
-    AI_ERROR_TYPES,
     sendAIMessage,
 } from "../../services/ai.service.js";
 
@@ -29,15 +28,9 @@ import ChatInput from "../../components/ai/ChatInput.jsx";
 
 const MAX_MESSAGE_LENGTH = 2000;
 
-const INITIAL_MESSAGE = {
-    id: "everkeep-ai-welcome",
-    role: "assistant",
-    content:
-        "Hi! I'm EverKeep AI. I can help you understand your EverKeep data, or answer general questions.",
-    timestamp: new Date(),
-};
-
 const QUICK_PROMPTS = [
+    "Explain recursion with a simple JavaScript example",
+    "Help me write a polite follow-up email",
     "What assets do I have?",
     "Which warranties expire soon?",
     "Show my active subscriptions",
@@ -72,6 +65,11 @@ const createMessage = (
     };
 };
 
+const toConversationHistory = (items) => items
+    .filter((item) => ["user", "assistant"].includes(item?.role) && !String(item?.id || "").startsWith("welcome") && item.content)
+    .slice(-12)
+    .map(({ role, content }) => ({ role, content }));
+
 
 // ============================================================================
 // AI PAGE
@@ -95,9 +93,7 @@ const AI = () => {
     const [
         messages,
         setMessages,
-    ] = useState([
-        INITIAL_MESSAGE,
-    ]);
+    ] = useState([]);
 
 
     const [
@@ -132,9 +128,6 @@ const AI = () => {
         useRef(false);
 
 
-    const abortControllerRef =
-        useRef(null);
-
 
     // ------------------------------------------------------------------------
     // PAGE MOUNT
@@ -160,7 +153,7 @@ const AI = () => {
     // =========================================================================
 
     const handleSendMessage = useCallback(
-        async (rawMessage) => {
+        async (rawMessage, requestOptions = {}) => {
 
             // ----------------------------------------------------------------
             // VALIDATION
@@ -208,12 +201,6 @@ const AI = () => {
 
             requestInFlight.current = true;
 
-            const abortController =
-                new AbortController();
-
-            abortControllerRef.current =
-                abortController;
-
             setError("");
             setIsLoading(true);
 
@@ -222,22 +209,15 @@ const AI = () => {
             // ADD USER MESSAGE
             // ----------------------------------------------------------------
 
-            const userMessage =
-                createMessage(
-                    "user",
-                    message
-                );
-
-
-            setMessages(
-                (previousMessages) => [
-                    ...previousMessages,
-                    userMessage,
-                ]
-            );
+            if (!requestOptions.retry) {
+                const userMessage = createMessage("user", message);
+                setMessages((previousMessages) => [...previousMessages, userMessage]);
+            }
 
 
             try {
+
+                const conversationHistory = requestOptions.history || toConversationHistory(messages);
 
                 // ------------------------------------------------------------
                 // BACKEND REQUEST
@@ -247,8 +227,7 @@ const AI = () => {
                     await sendAIMessage(
                         message,
                         {
-                            signal:
-                                abortController.signal,
+                            history: conversationHistory,
                         }
                     );
 
@@ -291,17 +270,10 @@ const AI = () => {
 
             } catch (requestError) {
 
-                if (
-                    requestError?.type ===
-                    AI_ERROR_TYPES.CANCELED
-                ) {
-                    return;
-                }
-
-                console.error(
-                    "EverKeep AI request failed:",
-                    requestError
-                );
+                console.error("EverKeep AI request failed:", {
+                    type: requestError?.type,
+                    status: requestError?.status,
+                });
 
 
                 const errorMessage =
@@ -319,20 +291,12 @@ const AI = () => {
                 requestInFlight.current =
                     false;
 
-                if (
-                    abortControllerRef.current ===
-                    abortController
-                ) {
-                    abortControllerRef.current =
-                        null;
-                }
-
                 setIsLoading(false);
 
             }
 
         },
-        []
+        [messages]
     );
 
 
@@ -372,18 +336,17 @@ const AI = () => {
 
             setError("");
 
-            const lastUserMessage =
-                [...messages]
-                    .reverse()
-                    .find(
-                        (message) =>
-                            message?.role ===
-                            "user"
-                    );
+            const lastUserIndex = messages.reduce((lastIndex, message, index) =>
+                message?.role === "user" ? index : lastIndex, -1);
+            const lastUserMessage = messages[lastUserIndex];
 
             if (lastUserMessage?.content) {
                 handleSendMessage(
-                    lastUserMessage.content
+                    lastUserMessage.content,
+                    {
+                        history: toConversationHistory(messages.slice(0, lastUserIndex)),
+                        retry: true,
+                    }
                 );
             }
 
@@ -399,14 +362,6 @@ const AI = () => {
     // STOP
     // =========================================================================
 
-    const handleStop = useCallback(
-        () => {
-            abortControllerRef.current?.abort();
-        },
-        []
-    );
-
-
     // =========================================================================
     // NEW CHAT
     // =========================================================================
@@ -419,15 +374,7 @@ const AI = () => {
             }
 
 
-            setMessages([
-                {
-                    ...INITIAL_MESSAGE,
-                    id: createMessageId(
-                        "welcome"
-                    ),
-                    timestamp: new Date(),
-                },
-            ]);
+            setMessages([]);
 
 
             setError("");
@@ -727,7 +674,6 @@ const AI = () => {
                     <ChatInput
                         onSend={handleSendMessage}
                         isLoading={isLoading}
-                        onStop={handleStop}
                         maxLength={MAX_MESSAGE_LENGTH}
                     />
 

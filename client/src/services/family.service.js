@@ -23,10 +23,7 @@
 // API CONFIGURATION
 // ============================================================================
 
-const API_BASE_URL =
-    import.meta.env.VITE_API_URL || "http://localhost:5000/api";
-
-const FAMILY_BASE_URL = `${API_BASE_URL}/family`;
+import api from "../lib/axios";
 
 // ============================================================================
 // CUSTOM API ERROR
@@ -45,169 +42,32 @@ class FamilyApiError extends Error {
 }
 
 // ============================================================================
-// AUTH TOKEN
-// ============================================================================
-//
-// EverKeep stores the JWT using:
-//     everkeep:token
-//
-// Fallback keys are kept for compatibility with older auth code.
-//
-// ============================================================================
-
-const getAuthToken = () => {
-    const tokenKeys = ["everkeep:token", "token", "accessToken", "authToken"];
-
-    for (const key of tokenKeys) {
-        const token = localStorage.getItem(key);
-
-        if (typeof token === "string" && token.trim()) {
-            return token.trim();
-        }
-    }
-
-    return null;
-};
-
 // ============================================================================
 // REQUEST HELPER
 // ============================================================================
 
 const request = async (endpoint, options = {}) => {
-    const token = getAuthToken();
-
-    const { method = "GET", body, params, headers = {} } = options;
-
-    // ------------------------------------------------------------------------
-    // AUTHENTICATION CHECK
-    // ------------------------------------------------------------------------
-
-    if (!token) {
-        throw new FamilyApiError(
-            "Authentication required. Please log in again.",
-            401,
-        );
-    }
-
-    // ------------------------------------------------------------------------
-    // BUILD URL
-    // ------------------------------------------------------------------------
-
-    let url = `${FAMILY_BASE_URL}${endpoint}`;
-
-    if (params) {
-        const searchParams = new URLSearchParams();
-
-        Object.entries(params).forEach(([key, value]) => {
-            if (value !== undefined && value !== null && value !== "") {
-                searchParams.append(key, String(value));
-            }
+    try {
+        const { method = "GET", body, ...config } = options;
+        const response = await api.request({
+            url: `/family${endpoint}`,
+            method,
+            data: body,
+            ...config,
         });
-
-        const queryString = searchParams.toString();
-
-        if (queryString) {
-            url += `?${queryString}`;
-        }
-    }
-
-    // ------------------------------------------------------------------------
-    // REQUEST CONFIGURATION
-    // ------------------------------------------------------------------------
-
-    const config = {
-        method,
-
-        headers: {
-            Accept: "application/json",
-
-            ...(body !== undefined
-                ? {
-                    "Content-Type": "application/json",
-                }
-                : {}),
-
-            Authorization: `Bearer ${token}`,
-
-            ...headers,
-        },
-
-        ...(body !== undefined
-            ? {
-                body: JSON.stringify(body),
-            }
-            : {}),
-    };
-
-    // ------------------------------------------------------------------------
-    // REQUEST
-    // ------------------------------------------------------------------------
-
-    let response;
-
-    try {
-        response = await fetch(url, config);
+        return response.data;
     } catch (error) {
-        console.error("EverKeep Family API connection error:", error);
-
-        throw new FamilyApiError("Unable to connect to EverKeep server.", 0, error);
+        const status = error?.response?.status || 0;
+        const data = error?.response?.data || null;
+        const message = status === 401
+            ? "Your session has expired. Please log in again."
+            : status === 403
+                ? data?.message || "You do not have permission to access this Family resource."
+                : data?.message || (status
+                    ? "Something went wrong while processing the Family request."
+                    : "Unable to connect to EverKeep server.");
+        throw new FamilyApiError(message, status, data || error);
     }
-
-    // ------------------------------------------------------------------------
-    // RESPONSE PARSING
-    // ------------------------------------------------------------------------
-
-    let result = null;
-
-    try {
-        result = await response.json();
-    } catch {
-        result = null;
-    }
-
-    // ------------------------------------------------------------------------
-    // API ERROR
-    // ------------------------------------------------------------------------
-
-    if (!response.ok) {
-        // --------------------------------------------------------------
-        // TOKEN EXPIRED / INVALID
-        // --------------------------------------------------------------
-
-        if (response.status === 401) {
-            throw new FamilyApiError(
-                "Your session has expired. Please log in again.",
-                401,
-                result,
-            );
-        }
-
-        // --------------------------------------------------------------
-        // FORBIDDEN
-        // --------------------------------------------------------------
-
-        if (response.status === 403) {
-            throw new FamilyApiError(
-                result?.message ||
-                "You do not have permission to access this Family resource.",
-                403,
-                result,
-            );
-        }
-
-        // --------------------------------------------------------------
-        // GENERAL API ERROR
-        // --------------------------------------------------------------
-
-        throw new FamilyApiError(
-            result?.message ||
-            "Something went wrong while processing the Family request.",
-            response.status,
-            result,
-        );
-    }
-
-    return result;
 };
 
 // ============================================================================

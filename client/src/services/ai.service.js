@@ -380,6 +380,7 @@ export const sendAIMessage = async (
 
                 {
                     message: normalizedMessage,
+                    history: Array.isArray(options?.history) ? options.history.slice(-12) : [],
                 },
 
                 {

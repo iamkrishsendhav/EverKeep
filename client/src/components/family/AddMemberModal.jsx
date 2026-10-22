@@ -35,7 +35,7 @@ const DEFAULT_FORM = {
     },
 
     notifications: {
-        renewal: true,
+        renewals: true,
         activity: false,
     },
 };
@@ -314,7 +314,7 @@ const AddMemberModal = ({
 
                 relationship: form.relationship,
 
-                access: form.access,
+                accessLevel: form.access === "Edit" ? "Full" : "ViewOnly",
 
                 permissions: form.permissions,
 
@@ -1091,7 +1091,7 @@ const AddMemberModal = ({
                                 <button
                                     type="button"
                                     onClick={() =>
-                                        updateNotification("renewal", !form.notifications.renewal)
+                                        updateNotification("renewals", !form.notifications.renewals)
                                     }
                                     disabled={loading}
                                     className="
@@ -1151,7 +1151,7 @@ const AddMemberModal = ({
                                             shrink-0
                                             rounded-full
                                             transition-colors
-                                            ${form.notifications.renewal
+                                            ${form.notifications.renewals
                                                 ? "bg-gray-900 dark:bg-white"
                                                 : "bg-gray-200 dark:bg-gray-700"
                                             }
@@ -1167,7 +1167,7 @@ const AddMemberModal = ({
                                                 bg-white
                                                 shadow-sm
                                                 transition-transform
-                                                ${form.notifications.renewal
+                                                ${form.notifications.renewals
                                                     ? "translate-x-5"
                                                     : "translate-x-1"
                                                 }

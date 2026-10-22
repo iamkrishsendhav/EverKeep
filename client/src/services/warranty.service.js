@@ -18,10 +18,11 @@ import api from "../lib/axios";
 // GET ALL WARRANTIES
 // ==========================================================================
 
-export const getWarranties = async () => {
+export const getWarranties = async (params = {}) => {
 
     const response = await api.get(
-        "/warranties"
+        "/warranties",
+        { params }
     );
 
     return response.data;

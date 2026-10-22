@@ -49,6 +49,7 @@ const handleError = (res, error, fallbackMessage = "Something went wrong.") => {
         "Invitation is invalid or no longer available.",
         "Invitation not found.",
         "This invitation has expired.",
+        "This invitation was sent to a different email address.",
         "This invitation has already been accepted.",
         "Only pending invitations can be cancelled.",
         "Family member not found.",

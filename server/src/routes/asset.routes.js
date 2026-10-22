@@ -10,6 +10,7 @@ import {
     unshareAsset,
     updateAssetSharingPermission,
     removeAssetMemberAccess,
+    getAssetAccessDetails,
     getAssetStats,
     getUpcomingWarrantyAssets,
     getFamilySharedAssets,
@@ -17,6 +18,7 @@ import {
 } from "../controllers/asset.controller.js";
 
 import authMiddleware from "../middleware/auth.middleware.js";
+import { requireAdmin } from "../middleware/role.middleware.js";
 
 const router = express.Router();
 
@@ -88,13 +90,12 @@ router.get("/family/shared", authMiddleware, getFamilySharedAssets);
 //
 // POST /api/assets/system/update-expired
 //
-// NOTE:
-// This endpoint should eventually be protected with a dedicated
-// internal/admin authorization mechanism or moved to a cron job.
+// This endpoint is an administrative maintenance operation. Ordinary users
+// cannot trigger its system-wide asset status update.
 //
 // ============================================================================
 
-router.post("/system/update-expired", authMiddleware, updateExpiredAssets);
+router.post("/system/update-expired", authMiddleware, requireAdmin, updateExpiredAssets);
 
 // ============================================================================
 // ASSET SHARING
@@ -117,7 +118,7 @@ router.delete("/:id/share", authMiddleware, unshareAsset);
 //
 // ============================================================================
 
-//router.get("/:id/access", authMiddleware, getAssetAccessDetails);
+router.get("/:id/access", authMiddleware, getAssetAccessDetails);
 
 // ============================================================================
 // INDIVIDUAL MEMBER ACCESS

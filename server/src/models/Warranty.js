@@ -212,6 +212,8 @@ warrantySchema.index({
     expiryDate: 1,
 });
 
+warrantySchema.index({ expiryDate: 1 });
+
 
 // Family + expiry
 warrantySchema.index({

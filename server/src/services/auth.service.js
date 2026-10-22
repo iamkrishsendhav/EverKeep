@@ -70,6 +70,11 @@ const sanitizeUser = (user) => {
     const userObject = user?.toObject ? user.toObject() : { ...user };
 
     delete userObject.password;
+    delete userObject.tokenVersion;
+    delete userObject.emailVerificationTokenHash;
+    delete userObject.emailVerificationExpiresAt;
+    delete userObject.passwordResetTokenHash;
+    delete userObject.passwordResetExpiresAt;
 
     return userObject;
 };
@@ -86,12 +91,14 @@ const generateToken = (user) => {
     return jwt.sign(
         {
             id: user._id.toString(),
+            tokenVersion: user.tokenVersion || 0,
         },
 
         getJwtSecret(),
 
         {
             expiresIn: getJwtExpiration(),
+            algorithm: "HS256",
         },
     );
 };
@@ -134,8 +141,8 @@ export const registerUser = async ({ name, email, password }) => {
         throw createAuthError("Name must contain at least 2 characters.");
     }
 
-    if (password.length < 6) {
-        throw createAuthError("Password must contain at least 6 characters.");
+    if (password.length < 8 || Buffer.byteLength(password, "utf8") > 72) {
+        throw createAuthError("Password must contain at least 8 characters and no more than 72 UTF-8 bytes.");
     }
 
     // ------------------------------------------------------------------------

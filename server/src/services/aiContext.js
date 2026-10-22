@@ -3,6 +3,7 @@ import Warranty from "../models/Warranty.js";
 import Subscription from "../models/subscription.model.js";
 import Document from "../models/Document.js";
 import CalendarEvent from "../models/CalendarEvent.js";
+import Family from "../models/Family.js";
 
 // ============================================================================
 // HELPERS
@@ -285,6 +286,27 @@ const getCalendarContext = async (userId) => {
     }));
 };
 
+const getFamilyContext = async (userId) => {
+    const family = await Family.findOne({
+        $or: [{ owner: userId }, { "members.user": userId }],
+    })
+        .select("name members.user members.role members.relationship members.status")
+        .populate("members.user", "name")
+        .lean();
+
+    if (!family) return [];
+    return [{
+        name: family.name || "",
+        members: (family.members || [])
+            .filter((member) => member.status === "Active")
+            .map((member) => ({
+                name: member.user?.name || "",
+                role: member.role || "Member",
+                relationship: member.relationship || "Family",
+            })),
+    }];
+};
+
 // ============================================================================
 // BUILD EVERKEEP AI CONTEXT
 // ============================================================================
@@ -296,7 +318,7 @@ const getCalendarContext = async (userId) => {
 //
 // ============================================================================
 
-export const buildAIContext = async (userId) => {
+export const buildAIContext = async (userId, requestedModules = null) => {
     if (!userId) {
         const error = new Error("User authentication is required.");
 
@@ -305,20 +327,18 @@ export const buildAIContext = async (userId) => {
         throw error;
     }
 
-    const [assets, warranties, subscriptions, documents, calendarEvents] =
-        await Promise.all([
-            getAssetContext(userId),
-            getWarrantyContext(userId),
-            getSubscriptionContext(userId),
-            getDocumentContext(userId),
-            getCalendarContext(userId),
-        ]);
-
-    return {
-        assets,
-        warranties,
-        subscriptions,
-        documents,
-        calendarEvents,
+    const getters = {
+        assets: getAssetContext,
+        warranties: getWarrantyContext,
+        subscriptions: getSubscriptionContext,
+        documents: getDocumentContext,
+        calendarEvents: getCalendarContext,
+        family: getFamilyContext,
     };
+    const modules = requestedModules
+        ? [...new Set(requestedModules)].filter((module) => getters[module])
+        : Object.keys(getters);
+    const values = await Promise.all(modules.map((module) => getters[module](userId)));
+
+    return Object.fromEntries(modules.map((module, index) => [module, values[index]]));
 };

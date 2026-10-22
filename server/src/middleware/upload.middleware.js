@@ -1,60 +1,29 @@
 import multer from "multer";
-import { CloudinaryStorage } from "multer-storage-cloudinary";
 import cloudinary from "../config/cloudinary.js";
+import CloudinaryStorage from "./cloudinaryStorage.js";
 
-const storage = new CloudinaryStorage({
-    cloudinary,
+const storage = new CloudinaryStorage({ cloudinary });
 
-    params: async (req, file) => ({
+const allowedTypes = new Set([
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+    "application/pdf",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+]);
 
-        folder: "everkeep/documents",
-
-        resource_type: "auto",
-
-        allowed_formats: [
-            "jpg",
-            "jpeg",
-            "png",
-            "pdf",
-            "doc",
-            "docx",
-            "webp",
-        ],
-
-        public_id: `${Date.now()}-${file.originalname.split(".")[0]}`,
-    }),
-});
-
-const fileFilter = (req, file, cb) => {
-
-    const allowedTypes = [
-        "image/jpeg",
-        "image/png",
-        "image/webp",
-        "application/pdf",
-        "application/msword",
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    ];
-
-    if (allowedTypes.includes(file.mimetype)) {
-        cb(null, true);
-    } else {
-        cb(new Error("Unsupported file type"), false);
-    }
+const fileFilter = (req, file, callback) => {
+    if (allowedTypes.has(file.mimetype)) return callback(null, true);
+    const error = new Error("Unsupported file type.");
+    error.statusCode = 400;
+    return callback(error);
 };
 
 const upload = multer({
-
     storage,
-
-    limits: {
-
-        fileSize: 10 * 1024 * 1024, // 10 MB
-
-    },
-
+    limits: { fileSize: 10 * 1024 * 1024, files: 1, fields: 30, parts: 32 },
     fileFilter,
-
 });
 
 export default upload;

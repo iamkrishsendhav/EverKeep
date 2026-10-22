@@ -3,6 +3,8 @@ import crypto from "crypto";
 import mongoose from "mongoose";
 
 import Family from "../models/Family.js";
+import User from "../models/user.model.js";
+import { createNotificationForUser } from "./notification.service.js";
 
 // ============================================================================
 // FAMILY SERVICE
@@ -568,6 +570,23 @@ export const inviteMember = async (ownerId, data = {}) => {
 
     await family.save();
 
+    try {
+        const invitedUser = await User.findOne({ email }).select("_id").lean();
+        if (invitedUser) await createNotificationForUser({
+            user: invitedUser._id,
+            title: "Family invitation received",
+            message: `You have been invited to join ${family.name || "a family workspace"}.`,
+            category: "family",
+            priority: "medium",
+            actionUrl: "/dashboard/family",
+            sourceType: "FamilyInvitation",
+            sourceId: family._id,
+            dedupeKey: `family-invitation:${family._id}:${invitation._id}`,
+        });
+    } catch (error) {
+        console.error("Could not create family invitation notification:", error.message);
+    }
+
     return {
         family,
         invitation,
@@ -603,6 +622,12 @@ export const acceptInvitation = async (userId, token) => {
 
     if (!invitation) {
         throw new Error("Invitation not found.");
+    }
+
+    const user = await User.findById(userId).select("email");
+
+    if (!user?.email || user.email.trim().toLowerCase() !== invitation.email.trim().toLowerCase()) {
+        throw new Error("This invitation was sent to a different email address.");
     }
 
     // ------------------------------------------------------------------------
@@ -690,6 +715,22 @@ export const acceptInvitation = async (userId, token) => {
     });
 
     await family.save();
+
+    try {
+        await createNotificationForUser({
+            user: family.owner,
+            title: "Family invitation accepted",
+            message: "A family member accepted your invitation.",
+            category: "family",
+            priority: "low",
+            actionUrl: "/dashboard/family",
+            sourceType: "FamilyMember",
+            sourceId: userId,
+            dedupeKey: `family-member-joined:${family._id}:${userId}`,
+        });
+    } catch (error) {
+        console.error("Could not create family join notification:", error.message);
+    }
 
     return family;
 };
